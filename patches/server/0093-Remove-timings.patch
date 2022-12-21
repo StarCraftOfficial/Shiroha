@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Wed, 21 Dec 2022 21:17:00 +0800
+Subject: [PATCH] Remove timings
+
+
+diff --git a/src/main/java/co/aikar/timings/WorldTimingsHandler.java b/src/main/java/co/aikar/timings/WorldTimingsHandler.java
+index b469bfa0a3ab4a0791fd54fcd866d7d63580b42e..8581e9149bb853dc019706eec4c1bbe9b6316371 100644
+--- a/src/main/java/co/aikar/timings/WorldTimingsHandler.java
++++ b/src/main/java/co/aikar/timings/WorldTimingsHandler.java
+@@ -101,7 +101,7 @@ public class WorldTimingsHandler {
+         chunkLoad = Timings.NULL_HANDLER;
+         chunkLoadPopulate = Timings.NULL_HANDLER;
+         syncChunkLoad = Timings.NULL_HANDLER;
+-        chunkLoadLevelTimer = Timings.ofSafe(name + "Chunk Load - Load Level");
++        chunkLoadLevelTimer = Timings.NULL_HANDLER;
+         chunkIO = Timings.NULL_HANDLER;
+         chunkPostLoad = Timings.NULL_HANDLER;
+         worldSave = Timings.NULL_HANDLER;
