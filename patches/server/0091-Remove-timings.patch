@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Wed, 21 Dec 2022 21:09:54 +0800
+Subject: [PATCH] Remove timings
+
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index c99722fd53a1e5fa19efad646fcd3830d7c556d0..bb9fd0401fec5107e1373b2d9c5db05c83714646 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -194,7 +194,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+     private final AtomicInteger threadId = new AtomicInteger();
+     public final CallbackExecutor callbackExecutor = new CallbackExecutor(Runtime.getRuntime().availableProcessors(),Runtime.getRuntime().availableProcessors(),500, TimeUnit.SECONDS,new LinkedBlockingQueue<>(),task -> {
+         synchronized (threadId){
+-            Thread worker = new TickThread(task,"Tick-Worker-"+threadId.get(),threadId.getAndIncrement());
++            Thread worker = new TickThread(task,"Entities-Tick-Worker-"+threadId.get(),threadId.getAndIncrement());
+             worker.setDaemon(true);
+             worker.setPriority(5);
+             return worker;
+@@ -1398,7 +1398,6 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+     protected void exit() {}
+ 
+     protected void a(BooleanSupplier booleansupplier) {
+-        co.aikar.timings.TimingsManager.FULL_SERVER_TICK.startTiming(); // Paper
+         this.slackActivityAccountant.tickStarted(); // Spigot
+         long i = SystemUtils.getMonotonicNanos();
+ 
+@@ -1494,7 +1493,6 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+         this.methodProfiler.exit();
+         org.spigotmc.WatchdogThread.tick(); // Spigot
+         this.slackActivityAccountant.tickEnded(l); // Spigot
+-        co.aikar.timings.TimingsManager.FULL_SERVER_TICK.stopTiming(); // Paper
+     }
+ 
+     protected void b(BooleanSupplier booleansupplier) {
+diff --git a/src/main/java/net/minecraft/server/level/WorldServer.java b/src/main/java/net/minecraft/server/level/WorldServer.java
+index 8e58d1a11fe056f353e75af09a98b66ac72e4645..439672c90249ac43292898436829a1e7d06d367d 100644
+--- a/src/main/java/net/minecraft/server/level/WorldServer.java
++++ b/src/main/java/net/minecraft/server/level/WorldServer.java
+@@ -1428,7 +1428,6 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+         if (!(entity instanceof EntityHuman) && !this.getChunkProvider().a(entity)) {
+             this.chunkCheck(entity);
+         } else {
+-            ++TimingHistory.entityTicks; // Paper - timings
+             // Spigot start
+             co.aikar.timings.Timing timer; // Paper
+             /*if (!org.spigotmc.ActivationRange.checkIfActive(entity)) { // Paper - comment out - EAR 2, reimplement below
+@@ -1456,7 +1455,6 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+                 });
+                 gameprofilerfiller.c("tickNonPassenger");
+                 if (isActive) { // Paper - EAR 2
+-                    TimingHistory.activatedEntityTicks++; // Paper
+                 entity.tick();
+                 entity.postTick(); // CraftBukkit
+                 } else { entity.inactiveTick(); } // Paper - EAR 2
+diff --git a/src/main/java/net/minecraft/world/level/World.java b/src/main/java/net/minecraft/world/level/World.java
+index d19aaff92c7169aeb863213497aab674a32971ff..2259daad6e909c1892276bf6c332f6df2b6bbda8 100644
+--- a/src/main/java/net/minecraft/world/level/World.java
++++ b/src/main/java/net/minecraft/world/level/World.java
+@@ -1018,7 +1018,6 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
+         }
+ 
+         timings.tileEntityPending.stopTiming(); // Spigot
+-        co.aikar.timings.TimingHistory.tileEntityTicks += this.tileEntityListTick.size(); // Paper
+         gameprofilerfiller.exit();
+         spigotConfig.currentPrimedTnt = 0; // Spigot
+     }
