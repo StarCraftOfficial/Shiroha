@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Wed, 21 Dec 2022 20:51:46 +0800
+Subject: [PATCH] Remove timings
+
+
+diff --git a/src/main/java/co/aikar/timings/TimingHistoryEntry.java b/src/main/java/co/aikar/timings/TimingHistoryEntry.java
+index 86d5ac6bd0d7d0003688761aceb3f3343575319f..d54e24989dd82a55aae751daa5339bf3e14b6e02 100644
+--- a/src/main/java/co/aikar/timings/TimingHistoryEntry.java
++++ b/src/main/java/co/aikar/timings/TimingHistoryEntry.java
+@@ -31,28 +31,7 @@ import org.jetbrains.annotations.NotNull;
+ import static co.aikar.util.JSONUtil.toArrayMapper;
+ 
+ class TimingHistoryEntry {
+-    final TimingData data;
+-    private final TimingData[] children;
+ 
+-    TimingHistoryEntry(@NotNull TimingHandler handler) {
+-        this.data = handler.record.clone();
+-        children = handler.cloneChildren();
+-    }
++    TimingHistoryEntry(@NotNull TimingHandler handler) {}
+ 
+-    @NotNull
+-    List<Object> export() {
+-        List<Object> result = data.export();
+-        if (children.length > 0) {
+-            result.add(
+-                toArrayMapper(children, new Function<TimingData, Object>() {
+-                    @NotNull
+-                    @Override
+-                    public Object apply(TimingData child) {
+-                        return child.export();
+-                    }
+-                })
+-            );
+-        }
+-        return result;
+-    }
+ }
