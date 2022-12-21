@@ -1,3 +1,6 @@
+# 这是 `StarCraft` 的内部项目
+## Tuinty 魔改版
+
 <div align=center>
     <!-- ./blob/master/tuinity-logo.webp -->
     <img src="./tuinity-logo.webp" width="512">
