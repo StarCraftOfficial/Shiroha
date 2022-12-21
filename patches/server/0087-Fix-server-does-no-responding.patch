@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Wed, 21 Dec 2022 17:19:31 +0800
+Subject: [PATCH] Fix server does no responding
+
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 1e33a9f57c0c899971795544a6886f52753010c0..c99722fd53a1e5fa19efad646fcd3830d7c556d0 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1310,14 +1310,6 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+         });
+     }
+ 
+-    @Override
+-    public void executeAll(){
+-        super.executeAll();
+-        if (this.callbackExecutor.isSubmittingStarted()){
+-            this.callbackExecutor.stopSubmitting();
+-        }
+-    }
+-
+     // Tuinity - replace logic
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/server/level/ChunkProviderServer.java b/src/main/java/net/minecraft/server/level/ChunkProviderServer.java
+index 1b86c032fde3409cb89b849b9ba094af82cd9269..fcc66217c8dc8aa97ea06b10c2fa0305fca9c95d 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkProviderServer.java
++++ b/src/main/java/net/minecraft/server/level/ChunkProviderServer.java
+@@ -1241,6 +1241,14 @@ public class ChunkProviderServer extends IChunkProvider {
+         }
+         // Tuinity - replace logic
+ 
++        @Override
++        public void executeAll(){
++            super.executeAll();
++            if (MinecraftServer.getServer().callbackExecutor.isSubmittingStarted()){
++                MinecraftServer.getServer().callbackExecutor.stopSubmitting();
++            }
++        }
++
+         @Override
+         protected boolean executeNext() {
+             com.tuinity.tuinity.util.TickThread.softEnsureTickThread("Cannot execute chunk tasks off-main thread");// Tuinity

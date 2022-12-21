@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Wed, 21 Dec 2022 17:10:30 +0800
+Subject: [PATCH] Fix some problems
+
+
+diff --git a/src/main/java/io/aoamoe/starserver/CallbackExecutor.java b/src/main/java/io/aoamoe/starserver/CallbackExecutor.java
+index dac051ea9dc64472ad4fdf40f7387ce0262df31a..495679c99434a680c66c377a23dae98c250a06ae 100644
+--- a/src/main/java/io/aoamoe/starserver/CallbackExecutor.java
++++ b/src/main/java/io/aoamoe/starserver/CallbackExecutor.java
+@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
+ import java.util.Queue;
+ import java.util.concurrent.*;
+ import java.util.concurrent.atomic.AtomicBoolean;
+-import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.concurrent.locks.LockSupport;
+ 
+ public class CallbackExecutor extends ThreadPoolExecutor {
+@@ -50,11 +49,15 @@ public class CallbackExecutor extends ThreadPoolExecutor {
+         throw new IllegalStateException();
+     }
+ 
++    public boolean isSubmittingStarted(){
++        return this.isSubmittingStarted.get();
++    }
++
+     public void stopSubmitting(){
+         if (!this.isSubmittingStarted.get()){
+             throw new IllegalStateException();
+         }
+-        this.isSubmittingStarted.set(true);
++        this.isSubmittingStarted.set(false);
+         TaskEntry task;
+         while ((task = this.submittedTasks.poll())!=null){
+             while (!task.runSubTask()){
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 78a5816dccd384675ee6e3b529817ceb8d94c78d..1e33a9f57c0c899971795544a6886f52753010c0 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1310,6 +1310,14 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+         });
+     }
+ 
++    @Override
++    public void executeAll(){
++        super.executeAll();
++        if (this.callbackExecutor.isSubmittingStarted()){
++            this.callbackExecutor.stopSubmitting();
++        }
++    }
++
+     // Tuinity - replace logic
+ 
+     @Override
+@@ -1498,7 +1506,9 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+     }
+ 
+     protected void b(BooleanSupplier booleansupplier) {
+-        this.callbackExecutor.startSubmitting();
++        if (!this.callbackExecutor.isSubmittingStarted()){
++            this.callbackExecutor.startSubmitting();
++        }
+         // Tuinity - replace logic
+         MinecraftTimings.bukkitSchedulerTimer.startTiming(); // Spigot // Paper
+         this.server.getScheduler().mainThreadHeartbeat(this.ticks); // CraftBukkit
+@@ -1591,7 +1601,6 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+             this.methodProfiler.exit();
+             worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
+         }
+-        this.callbackExecutor.stopSubmitting();
+ 
+         this.methodProfiler.exitEnter("connection");
+         MinecraftTimings.connectionTimer.startTiming(); // Spigot
