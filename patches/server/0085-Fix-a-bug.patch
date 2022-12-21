@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Wed, 21 Dec 2022 16:00:13 +0800
+Subject: [PATCH] Fix a bug
+
+
+diff --git a/src/main/java/io/aoamoe/starserver/CallbackExecutor.java b/src/main/java/io/aoamoe/starserver/CallbackExecutor.java
+index dd8c130d6ed4895e2719e900fcc057a6006bccd5..dac051ea9dc64472ad4fdf40f7387ce0262df31a 100644
+--- a/src/main/java/io/aoamoe/starserver/CallbackExecutor.java
++++ b/src/main/java/io/aoamoe/starserver/CallbackExecutor.java
+@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.concurrent.locks.LockSupport;
+ 
+ public class CallbackExecutor extends ThreadPoolExecutor {
+-    private final AtomicBoolean isSubmittingStarted = new AtomicBoolean();
++    private final AtomicBoolean isSubmittingStarted = new AtomicBoolean(false);
+     private final Queue<TaskEntry> submittedTasks = new ConcurrentLinkedDeque<>();
+ 
+     public CallbackExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, @NotNull TimeUnit unit, @NotNull BlockingQueue<Runnable> workQueue) {

@@ -1,0 +1,434 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Wed, 21 Dec 2022 15:46:09 +0800
+Subject: [PATCH] Async entity move
+
+
+diff --git a/src/main/java/io/aoamoe/starserver/CallbackExecutor.java b/src/main/java/io/aoamoe/starserver/CallbackExecutor.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..dd8c130d6ed4895e2719e900fcc057a6006bccd5
+--- /dev/null
++++ b/src/main/java/io/aoamoe/starserver/CallbackExecutor.java
+@@ -0,0 +1,96 @@
++package io.aoamoe.starserver;
++
++import org.jetbrains.annotations.NotNull;
++import java.util.Queue;
++import java.util.concurrent.*;
++import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.concurrent.atomic.AtomicInteger;
++import java.util.concurrent.locks.LockSupport;
++
++public class CallbackExecutor extends ThreadPoolExecutor {
++    private final AtomicBoolean isSubmittingStarted = new AtomicBoolean();
++    private final Queue<TaskEntry> submittedTasks = new ConcurrentLinkedDeque<>();
++
++    public CallbackExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, @NotNull TimeUnit unit, @NotNull BlockingQueue<Runnable> workQueue) {
++        super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
++    }
++
++    public CallbackExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, @NotNull TimeUnit unit, @NotNull BlockingQueue<Runnable> workQueue, @NotNull ThreadFactory threadFactory) {
++        super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory);
++    }
++
++    public CallbackExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, @NotNull TimeUnit unit, @NotNull BlockingQueue<Runnable> workQueue, @NotNull RejectedExecutionHandler handler) {
++        super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, handler);
++    }
++
++    public CallbackExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, @NotNull TimeUnit unit, @NotNull BlockingQueue<Runnable> workQueue, @NotNull ThreadFactory threadFactory, @NotNull RejectedExecutionHandler handler) {
++        super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler);
++    }
++
++    public void startSubmitting(){
++        if (this.isSubmittingStarted.get()){
++            throw new IllegalStateException();
++        }
++        this.isSubmittingStarted.set(true);
++    }
++
++    public void awaitSubmittingEnd(){
++        while (this.isSubmittingStarted.get()){
++            LockSupport.parkNanos(this,1);
++        }
++    }
++
++    public void executeWithCallBack(Runnable command,Runnable callBack){
++        if (this.isSubmittingStarted.get()){
++            TaskEntry newTask = new TaskEntry(command,callBack);
++            this.execute(newTask::runMainTask);
++            this.submittedTasks.add(newTask);
++            return;
++        }
++        throw new IllegalStateException();
++    }
++
++    public void stopSubmitting(){
++        if (!this.isSubmittingStarted.get()){
++            throw new IllegalStateException();
++        }
++        this.isSubmittingStarted.set(true);
++        TaskEntry task;
++        while ((task = this.submittedTasks.poll())!=null){
++            while (!task.runSubTask()){
++                LockSupport.parkNanos(this,1);
++            }
++        }
++    }
++
++    private static class TaskEntry{
++        private final Runnable mainTask;
++        private final Runnable subTask;
++        private volatile boolean mainTaskFinished = false;
++
++        public TaskEntry(Runnable mainTask,Runnable subTask){
++            this.mainTask = mainTask;
++            this.subTask = subTask;
++        }
++
++        public void runMainTask(){
++            try {
++                this.mainTask.run();
++            }finally {
++                this.mainTaskFinished = true;
++            }
++        }
++
++        public boolean runSubTask(){
++            if (!this.mainTaskFinished){
++                return false;
++            }
++            try {
++                this.subTask.run();
++            }catch (Exception e){
++                e.printStackTrace();
++            }
++            return true;
++        }
++    }
++}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 6f90a4182e008b49a4b3328e569311382e4bec0d..78a5816dccd384675ee6e3b529817ceb8d94c78d 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -9,6 +9,8 @@ import com.mojang.authlib.GameProfile;
+ import com.mojang.authlib.GameProfileRepository;
+ import com.mojang.authlib.minecraft.MinecraftSessionService;
+ import com.mojang.datafixers.DataFixer;
++import com.tuinity.tuinity.util.TickThread;
++import io.aoamoe.starserver.CallbackExecutor;
+ import io.netty.buffer.ByteBuf;
+ import io.netty.buffer.ByteBufOutputStream;
+ import io.netty.buffer.Unpooled;
+@@ -49,6 +51,9 @@ import java.util.Set;
+ import java.util.UUID;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.Executor;
++import java.util.concurrent.LinkedBlockingQueue;
++import java.util.concurrent.TimeUnit;
++import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.BooleanSupplier;
+ import java.util.function.Function;
+@@ -186,6 +191,15 @@ import io.papermc.paper.event.server.ServerResourcesReloadedEvent; // Paper
+ 
+ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTask> implements IMojangStatistics, ICommandListener, AutoCloseable {
+ 
++    private final AtomicInteger threadId = new AtomicInteger();
++    public final CallbackExecutor callbackExecutor = new CallbackExecutor(Runtime.getRuntime().availableProcessors(),Runtime.getRuntime().availableProcessors(),500, TimeUnit.SECONDS,new LinkedBlockingQueue<>(),task -> {
++        synchronized (threadId){
++            Thread worker = new TickThread(task,"Tick-Worker-"+threadId.get(),threadId.getAndIncrement());
++            worker.setDaemon(true);
++            worker.setPriority(5);
++            return worker;
++        }
++    });
+     private static MinecraftServer SERVER; // Paper
+     public static final Logger LOGGER = LogManager.getLogger();
+     public static final File b = new File("usercache.json");
+@@ -1484,6 +1498,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+     }
+ 
+     protected void b(BooleanSupplier booleansupplier) {
++        this.callbackExecutor.startSubmitting();
+         // Tuinity - replace logic
+         MinecraftTimings.bukkitSchedulerTimer.startTiming(); // Spigot // Paper
+         this.server.getScheduler().mainThreadHeartbeat(this.ticks); // CraftBukkit
+@@ -1576,6 +1591,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+             this.methodProfiler.exit();
+             worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
+         }
++        this.callbackExecutor.stopSubmitting();
+ 
+         this.methodProfiler.exitEnter("connection");
+         MinecraftTimings.connectionTimer.startTiming(); // Spigot
+diff --git a/src/main/java/net/minecraft/server/level/WorldServer.java b/src/main/java/net/minecraft/server/level/WorldServer.java
+index 6fc215df5ed3aa6ef0c23a57e8444602ff9309e8..8e58d1a11fe056f353e75af09a98b66ac72e4645 100644
+--- a/src/main/java/net/minecraft/server/level/WorldServer.java
++++ b/src/main/java/net/minecraft/server/level/WorldServer.java
+@@ -10,6 +10,7 @@ import com.google.common.collect.Lists;
+ import com.google.common.collect.Maps;
+ import com.google.common.collect.Queues;
+ import com.google.common.collect.Sets;
++import com.tuinity.tuinity.util.TickThread;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
+@@ -352,7 +353,7 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+ 
+     public final void loadChunksForMoveAsync(AxisAlignedBB axisalignedbb, double toX, double toZ,
+                                              java.util.function.Consumer<List<IChunkAccess>> onLoad) {
+-        if (Thread.currentThread() != this.serverThread) {
++        if (Thread.currentThread() != this.serverThread && !(Thread.currentThread() instanceof TickThread)) {
+             this.getChunkProvider().serverThreadQueue.execute(() -> {
+                 this.loadChunksForMoveAsync(axisalignedbb, toX, toZ, onLoad);
+             });
+@@ -831,7 +832,7 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+     @Override
+     public TileEntity getTileEntity(BlockPosition pos, boolean validate) {
+         TileEntity result = super.getTileEntity(pos, validate);
+-        if (!validate || Thread.currentThread() != this.serverThread) {
++        if (!validate || (Thread.currentThread() != this.serverThread && !(Thread.currentThread() instanceof TickThread)) ) {
+             // SPIGOT-5378: avoid deadlock, this can be called in loading logic (i.e lighting) but getType() will block on chunk load
+             return result;
+         }
+@@ -980,23 +981,24 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+             this.server.getPlayerList().sendAll(new PacketPlayOutGameStateChange(PacketPlayOutGameStateChange.i, this.thunderLevel));
+         }
+         // */
+-        for (int idx = 0; idx < this.players.size(); ++idx) {
+-            if (((EntityPlayer) this.players.get(idx)).world == this) {
+-                ((EntityPlayer) this.players.get(idx)).tickWeather();
++        for (EntityPlayer player : this.players) {
++            if (((EntityPlayer) player).world == this) {
++                ((EntityPlayer) player).tickWeather();
+             }
+         }
+ 
+         if (flag != this.isRaining()) {
+             // Only send weather packets to those affected
+-            for (int idx = 0; idx < this.players.size(); ++idx) {
+-                if (((EntityPlayer) this.players.get(idx)).world == this) {
+-                    ((EntityPlayer) this.players.get(idx)).setPlayerWeather((!flag ? WeatherType.DOWNFALL : WeatherType.CLEAR), false);
++            for (EntityPlayer player : this.players) {
++                if (((EntityPlayer) player).world == this) {
++                    ((EntityPlayer) player).setPlayerWeather((!flag ? WeatherType.DOWNFALL : WeatherType.CLEAR), false);
+                 }
+             }
+         }
+-        for (int idx = 0; idx < this.players.size(); ++idx) {
+-            if (((EntityPlayer) this.players.get(idx)).world == this) {
+-                ((EntityPlayer) this.players.get(idx)).updateWeather(this.lastRainLevel, this.rainLevel, this.lastThunderLevel, this.thunderLevel);
++
++        for (EntityPlayer player : this.players) {
++            if (((EntityPlayer) player).world == this) {
++                ((EntityPlayer) player).updateWeather(this.lastRainLevel, this.rainLevel, this.lastThunderLevel, this.thunderLevel);
+             }
+         }
+         // CraftBukkit end
+@@ -1464,11 +1466,8 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+             this.chunkCheck(entity);
+             } finally { timer.stopTiming(); } // Paper - timings
+             if (entity.inChunk) {
+-                Iterator iterator = entity.getPassengers().iterator();
+-
+-                while (iterator.hasNext()) {
+-                    Entity entity1 = (Entity) iterator.next();
+ 
++                for (Entity entity1 : entity.getPassengers()) {
+                     this.a(entity, entity1);
+                 }
+             }
+diff --git a/src/main/java/net/minecraft/world/entity/EntityLiving.java b/src/main/java/net/minecraft/world/entity/EntityLiving.java
+index 2ff3297fb8c0e4f8c969ba2727eecb7fe06525c4..dd6ad9c94e9f90b4a31ae98c5b8bebef2ac468f5 100644
+--- a/src/main/java/net/minecraft/world/entity/EntityLiving.java
++++ b/src/main/java/net/minecraft/world/entity/EntityLiving.java
+@@ -45,6 +45,7 @@ import net.minecraft.network.syncher.DataWatcher;
+ import net.minecraft.network.syncher.DataWatcherObject;
+ import net.minecraft.network.syncher.DataWatcherRegistry;
+ import net.minecraft.resources.MinecraftKey;
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ChunkProviderServer;
+ import net.minecraft.server.level.EntityPlayer;
+ import net.minecraft.server.level.WorldServer;
+@@ -2588,86 +2589,87 @@ public abstract class EntityLiving extends Entity {
+             }
+         }
+ 
+-        this.movementTick();
+-        double d0 = this.locX() - this.lastX;
+-        double d1 = this.locZ() - this.lastZ;
+-        float f = (float) (d0 * d0 + d1 * d1);
+-        float f1 = this.aA;
+-        float f2 = 0.0F;
++        MinecraftServer.getServer().callbackExecutor.executeWithCallBack(this::movementTick,()->{
++            double d0 = this.locX() - this.lastX;
++            double d1 = this.locZ() - this.lastZ;
++            float f = (float) (d0 * d0 + d1 * d1);
++            float f1 = this.aA;
++            float f2 = 0.0F;
+ 
+-        this.aJ = this.aK;
+-        float f3 = 0.0F;
++            this.aJ = this.aK;
++            float f3 = 0.0F;
+ 
+-        if (f > 0.0025000002F) {
+-            f3 = 1.0F;
+-            f2 = (float) Math.sqrt((double) f) * 3.0F;
+-            float f4 = (float) MathHelper.d(d1, d0) * 57.295776F - 90.0F;
+-            float f5 = MathHelper.e(MathHelper.g(this.yaw) - f4);
++            if (f > 0.0025000002F) {
++                f3 = 1.0F;
++                f2 = (float) Math.sqrt((double) f) * 3.0F;
++                float f4 = (float) MathHelper.d(d1, d0) * 57.295776F - 90.0F;
++                float f5 = MathHelper.e(MathHelper.g(this.yaw) - f4);
+ 
+-            if (95.0F < f5 && f5 < 265.0F) {
+-                f1 = f4 - 180.0F;
+-            } else {
+-                f1 = f4;
++                if (95.0F < f5 && f5 < 265.0F) {
++                    f1 = f4 - 180.0F;
++                } else {
++                    f1 = f4;
++                }
+             }
+-        }
+ 
+-        if (this.as > 0.0F) {
+-            f1 = this.yaw;
+-        }
++            if (this.as > 0.0F) {
++                f1 = this.yaw;
++            }
+ 
+-        if (!this.onGround) {
+-            f3 = 0.0F;
+-        }
++            if (!this.onGround) {
++                f3 = 0.0F;
++            }
+ 
+-        this.aK += (f3 - this.aK) * 0.3F;
+-        this.world.getMethodProfiler().enter("headTurn");
+-        f2 = this.f(f1, f2);
+-        this.world.getMethodProfiler().exit();
+-        this.world.getMethodProfiler().enter("rangeChecks");
++            this.aK += (f3 - this.aK) * 0.3F;
++            this.world.getMethodProfiler().enter("headTurn");
++            f2 = this.f(f1, f2);
++            this.world.getMethodProfiler().exit();
++            this.world.getMethodProfiler().enter("rangeChecks");
+ 
+-        while (this.yaw - this.lastYaw < -180.0F) {
+-            this.lastYaw -= 360.0F;
+-        }
++            while (this.yaw - this.lastYaw < -180.0F) {
++                this.lastYaw -= 360.0F;
++            }
+ 
+-        while (this.yaw - this.lastYaw >= 180.0F) {
+-            this.lastYaw += 360.0F;
+-        }
++            while (this.yaw - this.lastYaw >= 180.0F) {
++                this.lastYaw += 360.0F;
++            }
+ 
+-        while (this.aA - this.aB < -180.0F) {
+-            this.aB -= 360.0F;
+-        }
++            while (this.aA - this.aB < -180.0F) {
++                this.aB -= 360.0F;
++            }
+ 
+-        while (this.aA - this.aB >= 180.0F) {
+-            this.aB += 360.0F;
+-        }
++            while (this.aA - this.aB >= 180.0F) {
++                this.aB += 360.0F;
++            }
+ 
+-        while (this.pitch - this.lastPitch < -180.0F) {
+-            this.lastPitch -= 360.0F;
+-        }
++            while (this.pitch - this.lastPitch < -180.0F) {
++                this.lastPitch -= 360.0F;
++            }
+ 
+-        while (this.pitch - this.lastPitch >= 180.0F) {
+-            this.lastPitch += 360.0F;
+-        }
++            while (this.pitch - this.lastPitch >= 180.0F) {
++                this.lastPitch += 360.0F;
++            }
+ 
+-        while (this.aC - this.aD < -180.0F) {
+-            this.aD -= 360.0F;
+-        }
++            while (this.aC - this.aD < -180.0F) {
++                this.aD -= 360.0F;
++            }
+ 
+-        while (this.aC - this.aD >= 180.0F) {
+-            this.aD += 360.0F;
+-        }
++            while (this.aC - this.aD >= 180.0F) {
++                this.aD += 360.0F;
++            }
+ 
+-        this.world.getMethodProfiler().exit();
+-        this.aL += f2;
+-        if (this.isGliding()) {
+-            ++this.be;
+-        } else {
+-            this.be = 0;
+-        }
++            this.world.getMethodProfiler().exit();
++            this.aL += f2;
++            if (this.isGliding()) {
++                ++this.be;
++            } else {
++                this.be = 0;
++            }
+ 
+-        if (this.isSleeping()) {
+-            this.pitch = 0.0F;
+-        }
++            if (this.isSleeping()) {
++                this.pitch = 0.0F;
++            }
++        });
+     }
+ 
+     public void updateEquipment() {
+diff --git a/src/main/java/net/minecraft/world/level/World.java b/src/main/java/net/minecraft/world/level/World.java
+index cb8064df7e9f1b8b4d4292486e2193680d83663c..22ec90842709fa0ed700ef4624fdb665a9a4b751 100644
+--- a/src/main/java/net/minecraft/world/level/World.java
++++ b/src/main/java/net/minecraft/world/level/World.java
+@@ -18,6 +18,8 @@ import java.util.function.Consumer;
+ import java.util.function.Predicate;
+ import java.util.function.Supplier;
+ import javax.annotation.Nullable;
++
++import com.tuinity.tuinity.util.TickThread;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportSystemDetails;
+ import net.minecraft.ReportedException;
+@@ -417,7 +419,7 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
+     public final Chunk getChunkAt(int i, int j) { // Paper - final to help inline
+         // Tuinity start - make sure loaded chunks get the inlined variant of this function
+         net.minecraft.server.level.ChunkProviderServer cps = ((WorldServer)this).chunkProvider;
+-        if (cps.serverThread == Thread.currentThread()) {
++        if (cps.serverThread == Thread.currentThread() || (Thread.currentThread() instanceof TickThread)) {
+             Chunk ifLoaded = cps.getChunkAtIfLoadedMainThread(i, j);
+             if (ifLoaded != null) {
+                 return ifLoaded;
+@@ -1077,7 +1079,7 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
+         // CraftBukkit end
+         if (isOutsideWorld(blockposition)) {
+             return null;
+-        } else if (!this.isClientSide && Thread.currentThread() != this.serverThread) {
++        } else if (!this.isClientSide && Thread.currentThread() != this.serverThread && !(Thread.currentThread() instanceof TickThread)) {
+             return null;
+         } else {
+             // CraftBukkit start
