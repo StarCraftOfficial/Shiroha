@@ -1,0 +1,189 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Wed, 21 Dec 2022 18:35:47 +0800
+Subject: [PATCH] Fix some problems
+
+
+diff --git a/src/main/java/com/tuinity/tuinity/util/CachedLists.java b/src/main/java/com/tuinity/tuinity/util/CachedLists.java
+index e0a2f10f92430fd59519e57dee3286035c287bf3..7170ced48b91e2fa2c37fac0f9c73121bc78ebfa 100644
+--- a/src/main/java/com/tuinity/tuinity/util/CachedLists.java
++++ b/src/main/java/com/tuinity/tuinity/util/CachedLists.java
+@@ -1,5 +1,6 @@
+ package com.tuinity.tuinity.util;
+ 
++import com.google.common.collect.Lists;
+ import net.minecraft.world.phys.AxisAlignedBB;
+ import net.minecraft.world.level.chunk.Chunk;
+ import net.minecraft.world.entity.Entity;
+@@ -8,67 +9,21 @@ import org.bukkit.craftbukkit.util.UnsafeList;
+ import java.util.List;
+ 
+ public class CachedLists {
+-
+-    static final UnsafeList<AxisAlignedBB> TEMP_COLLISION_LIST = new UnsafeList<>(1024);
+-    static boolean tempCollisionListInUse;
+-
+-    public static UnsafeList<AxisAlignedBB> getTempCollisionList() {
+-        if (!Bukkit.isPrimaryThread() || tempCollisionListInUse) {
+-            return new UnsafeList<>(16);
+-        }
+-        tempCollisionListInUse = true;
+-        return TEMP_COLLISION_LIST;
++    public static List<AxisAlignedBB> getTempCollisionList() {
++        return Lists.newCopyOnWriteArrayList();
+     }
+ 
+-    public static void returnTempCollisionList(List<AxisAlignedBB> list) {
+-        if (list != TEMP_COLLISION_LIST) {
+-            return;
+-        }
+-        ((UnsafeList)list).setSize(0);
+-        tempCollisionListInUse = false;
+-    }
++    public static void returnTempCollisionList(List<AxisAlignedBB> list) {}
+ 
+-    static final UnsafeList<Entity> TEMP_GET_ENTITIES_LIST = new UnsafeList<>(1024);
+-    static boolean tempGetEntitiesListInUse;
+-
+-    public static UnsafeList<Entity> getTempGetEntitiesList() {
+-        if (!Bukkit.isPrimaryThread() || tempGetEntitiesListInUse) {
+-            return new UnsafeList<>(16);
+-        }
+-        tempGetEntitiesListInUse = true;
+-        return TEMP_GET_ENTITIES_LIST;
++    public static List<Entity> getTempGetEntitiesList() {
++        return Lists.newCopyOnWriteArrayList();
+     }
+ 
+-    public static void returnTempGetEntitiesList(List<Entity> list) {
+-        if (list != TEMP_GET_ENTITIES_LIST) {
+-            return;
+-        }
+-        ((UnsafeList)list).setSize(0);
+-        tempGetEntitiesListInUse = false;
+-    }
++    public static void returnTempGetEntitiesList(List<Entity> list) {}
+ 
+-    static final UnsafeList<Chunk> TEMP_GET_CHUNKS_LIST = new UnsafeList<>(1024);
+-    static boolean tempGetChunksListInUse;
++    public static List<Chunk> getTempGetChunksList() {return Lists.newCopyOnWriteArrayList();}
+ 
+-    public static UnsafeList<Chunk> getTempGetChunksList() {
+-        if (!Bukkit.isPrimaryThread() || tempGetChunksListInUse) {
+-            return new UnsafeList<>();
+-        }
+-        tempGetChunksListInUse = true;
+-        return TEMP_GET_CHUNKS_LIST;
+-    }
+-
+-    public static void returnTempGetChunksList(List<Chunk> list) {
+-        if (list != TEMP_GET_CHUNKS_LIST) {
+-            return;
+-        }
+-        ((UnsafeList)list).setSize(0);
+-        tempGetChunksListInUse = false;
+-    }
++    public static void returnTempGetChunksList(List<Chunk> list) {}
+ 
+-    public static void reset() {
+-        TEMP_COLLISION_LIST.completeReset();
+-        TEMP_GET_ENTITIES_LIST.completeReset();
+-        TEMP_GET_CHUNKS_LIST.completeReset();
+-    }
++    public static void reset() {}
+ }
+diff --git a/src/main/java/net/minecraft/world/level/World.java b/src/main/java/net/minecraft/world/level/World.java
+index 22ec90842709fa0ed700ef4624fdb665a9a4b751..d19aaff92c7169aeb863213497aab674a32971ff 100644
+--- a/src/main/java/net/minecraft/world/level/World.java
++++ b/src/main/java/net/minecraft/world/level/World.java
+@@ -1361,14 +1361,14 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
+                                                              @Nullable net.minecraft.world.entity.EntityLiving source,
+                                                              double x, double y, double z,
+                                                              AxisAlignedBB boundingBox) {
+-        org.bukkit.craftbukkit.util.UnsafeList<Entity> entities = com.tuinity.tuinity.util.CachedLists.getTempGetEntitiesList();
++        List<Entity> entities = com.tuinity.tuinity.util.CachedLists.getTempGetEntitiesList();
+         try {
+             int lowerX = MCUtil.fastFloor((boundingBox.minX - 2.0D)) >> 4;
+             int upperX = MCUtil.fastFloor((boundingBox.maxX + 2.0D)) >> 4;
+             int lowerZ = MCUtil.fastFloor((boundingBox.minZ - 2.0D)) >> 4;
+             int upperZ = MCUtil.fastFloor((boundingBox.maxZ + 2.0D)) >> 4;
+ 
+-            org.bukkit.craftbukkit.util.UnsafeList<Chunk> chunks = com.tuinity.tuinity.util.CachedLists.getTempGetChunksList();
++            List<Chunk> chunks = com.tuinity.tuinity.util.CachedLists.getTempGetChunksList();
+             try {
+                 T closest = null;
+                 double closestDistance = Double.MAX_VALUE;
+@@ -1415,13 +1415,13 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
+                     }
+                 }
+ 
+-                Object[] chunkData = chunks.getRawDataArray();
++                Object[] chunkData = chunks.toArray();
+                 for (int cindex = 0, clen = chunks.size(); cindex < clen; ++cindex) {
+                     final Chunk chunk = (Chunk)chunkData[cindex];
+ 
+                     chunk.getEntitiesClass(clazz, source, boundingBox, null, entities);
+ 
+-                    Object[] entityData = entities.getRawDataArray();
++                    Object[] entityData = entities.toArray();
+                     for (int eindex = 0, entities_len = entities.size(); eindex < entities_len; ++eindex) {
+                         T entity = (T)entityData[eindex];
+                         double distance = entity.getDistanceSquared(x, y, z);
+@@ -1432,7 +1432,7 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
+                         }
+                     }
+ 
+-                    entities.setSize(0);
++                    entities.clear();
+                 }
+ 
+                 return closest;
+diff --git a/src/main/java/org/spigotmc/ActivationRange.java b/src/main/java/org/spigotmc/ActivationRange.java
+index 5c2eaca0bc63c7880ee928aba6a24761737aa649..c857b8f068177882d931fd0aeaa169ab44b12936 100644
+--- a/src/main/java/org/spigotmc/ActivationRange.java
++++ b/src/main/java/org/spigotmc/ActivationRange.java
+@@ -110,7 +110,7 @@ public class ActivationRange
+      * @param entity
+      * @return group id
+      */
+-    public static ActivationType initializeEntityActivationType(Entity entity)
++    public synchronized static ActivationType initializeEntityActivationType(Entity entity)
+     {
+         if (entity instanceof EntityWaterAnimal) { return ActivationType.WATER; } // Paper
+         else if (entity instanceof EntityVillager) { return ActivationType.VILLAGER; } // Paper
+@@ -137,7 +137,7 @@ public class ActivationRange
+      * @param config Spigot config to determine ranges
+      * @return boolean If it should always tick.
+      */
+-    public static boolean initializeEntityActivationState(Entity entity, SpigotWorldConfig config)
++    public synchronized static boolean initializeEntityActivationState(Entity entity, SpigotWorldConfig config)
+     {
+         if ( ( entity.activationType == ActivationType.MISC && config.miscActivationRange <= 0 )
+                 || ( entity.activationType == ActivationType.RAIDER && config.raiderActivationRange <= 0 )
+@@ -172,7 +172,7 @@ public class ActivationRange
+      *
+      * @param world
+      */
+-    public static void activateEntities(World world)
++    public synchronized static void activateEntities(World world)
+     {
+         MinecraftTimings.entityActivationCheckTimer.startTiming();
+         final int miscActivationRange = world.spigotConfig.miscActivationRange;
+@@ -265,7 +265,7 @@ public class ActivationRange
+      * @param entity
+      * @return
+      */
+-    public static int checkEntityImmunities(Entity entity) // Paper - return # of ticks to get immunity
++    public synchronized static int checkEntityImmunities(Entity entity) // Paper - return # of ticks to get immunity
+     {
+         // Paper start
+         SpigotWorldConfig config = entity.world.spigotConfig;
+@@ -372,7 +372,7 @@ public class ActivationRange
+      * @param entity
+      * @return
+      */
+-    public static boolean checkIfActive(Entity entity)
++    public synchronized static boolean checkIfActive(Entity entity)
+     {
+         // Never safe to skip fireworks or entities not yet added to chunk
+         if ( !entity.inChunk || entity instanceof EntityFireworks ) {
