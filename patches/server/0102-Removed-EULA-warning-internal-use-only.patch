@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Klop233 <3337913379@qq.com>
+Date: Thu, 22 Dec 2022 14:58:14 +0800
+Subject: [PATCH] Removed EULA (warning: internal use only)
+
+
+diff --git a/src/main/java/net/minecraft/server/EULA.java b/src/main/java/net/minecraft/server/EULA.java
+index 3bc5cd1e53dd7c94b948e7f57f0dc8e073e349b0..f4020fa7a1a526fcf140fc1f3888643bb36d10c8 100644
+--- a/src/main/java/net/minecraft/server/EULA.java
++++ b/src/main/java/net/minecraft/server/EULA.java
+@@ -21,45 +21,11 @@ public class EULA {
+     }
+ 
+     private boolean b() {
+-        try {
+-            InputStream inputstream = Files.newInputStream(this.b);
+-            Throwable throwable = null;
+-
+-            boolean flag;
+-
+-            try {
+-                Properties properties = new Properties();
+-
+-                properties.load(inputstream);
+-                flag = Boolean.parseBoolean(properties.getProperty("eula", "false"));
+-            } catch (Throwable throwable1) {
+-                throwable = throwable1;
+-                throw throwable1;
+-            } finally {
+-                if (inputstream != null) {
+-                    if (throwable != null) {
+-                        try {
+-                            inputstream.close();
+-                        } catch (Throwable throwable2) {
+-                            throwable.addSuppressed(throwable2);
+-                        }
+-                    } else {
+-                        inputstream.close();
+-                    }
+-                }
+-
+-            }
+-
+-            return flag;
+-        } catch (Exception exception) {
+-            EULA.LOGGER.warn("Failed to load {}", this.b);
+-            this.c();
+-            return false;
+-        }
++            return true;
+     }
+ 
+     public boolean a() {
+-        return this.c;
++        return true;
+     }
+ 
+     private void c() {
+@@ -71,7 +37,7 @@ public class EULA {
+                 try {
+                     Properties properties = new Properties();
+ 
+-                    properties.setProperty("eula", "false");
++                    properties.setProperty("eula", "true");
+                     properties.store(outputstream, "By changing the setting below to TRUE you are indicating your agreement to our EULA (https://account.mojang.com/documents/minecraft_eula).");  // Paper - fix lag; // Tuinity - Tacos are disgusting
+                 } catch (Throwable throwable1) {
+                     throwable = throwable1;
+diff --git a/src/main/java/net/minecraft/server/Main.java b/src/main/java/net/minecraft/server/Main.java
+index 15b972b4a93b8fe3655acec47bc84b0f2c4620a6..110d11dfe7fbe64123800a82c3e8340f757d285b 100644
+--- a/src/main/java/net/minecraft/server/Main.java
++++ b/src/main/java/net/minecraft/server/Main.java
+@@ -120,7 +120,7 @@ public class Main {
+             }
+ 
+             // Spigot Start
+-            boolean eulaAgreed = Boolean.getBoolean( "com.mojang.eula.agree" );
++            boolean eulaAgreed = true;
+             if ( eulaAgreed )
+             {
+                 System.err.println( "You have used the Spigot command line EULA agreement flag." );
