@@ -1,0 +1,348 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Thu, 22 Dec 2022 18:33:30 +0800
+Subject: [PATCH] Thread safe fix
+
+
+diff --git a/src/main/java/net/minecraft/server/level/WorldServer.java b/src/main/java/net/minecraft/server/level/WorldServer.java
+index 439672c90249ac43292898436829a1e7d06d367d..0f5f731e708b1f9ab02d6c4c023dadd4685f2593 100644
+--- a/src/main/java/net/minecraft/server/level/WorldServer.java
++++ b/src/main/java/net/minecraft/server/level/WorldServer.java
+@@ -1,72 +1,25 @@
+ package net.minecraft.server.level;
+ 
++import com.destroystokyo.paper.PaperWorldConfig;
+ import com.google.common.annotations.VisibleForTesting;
+-import com.google.common.collect.Iterables;
+-import co.aikar.timings.TimingHistory; // Paper
+-import co.aikar.timings.Timings; // Paper
+-
+-import com.destroystokyo.paper.PaperWorldConfig; // Paper
+-import com.google.common.collect.Lists;
+-import com.google.common.collect.Maps;
+-import com.google.common.collect.Queues;
+-import com.google.common.collect.Sets;
++import com.google.common.collect.*;
+ import com.tuinity.tuinity.util.TickThread;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+-import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
++import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
++import it.unimi.dsi.fastutil.ints.IntArrayList;
+ import it.unimi.dsi.fastutil.longs.LongSet;
+ import it.unimi.dsi.fastutil.longs.LongSets;
+-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+-import it.unimi.dsi.fastutil.objects.Object2IntMap;
+-import it.unimi.dsi.fastutil.objects.ObjectIterator;
+-import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
+-import java.io.BufferedWriter;
+-import java.io.IOException;
+-import java.io.Writer;
+-import java.nio.file.Files;
+-import java.nio.file.Path;
+-import java.util.Collection;
+-import java.util.Comparator;
+-import java.util.Iterator;
+-import java.util.List;
+-import java.util.Map;
+-import java.util.Objects;
+-import java.util.Optional;
+-import java.util.Queue;
+-import java.util.Set;
+-import java.util.UUID;
+-import java.util.concurrent.Executor;
+-import java.util.function.BooleanSupplier;
+-import java.util.function.Function;
+-import java.util.function.Predicate;
+-import java.util.stream.Collectors;
+-import java.util.stream.Stream;
+-import javax.annotation.Nonnull;
+-import javax.annotation.Nullable;
++import it.unimi.dsi.fastutil.objects.*;
+ import net.minecraft.CrashReport;
+ import net.minecraft.SystemUtils;
+-import net.minecraft.core.BaseBlockPosition;
+-import net.minecraft.core.BlockPosition;
+-import net.minecraft.core.IPosition;
+-import net.minecraft.core.IRegistry;
+-import net.minecraft.core.IRegistryCustom;
+-import net.minecraft.core.SectionPosition;
++import net.minecraft.core.*;
+ import net.minecraft.core.particles.ParticleParam;
+ import net.minecraft.nbt.NBTTagCompound;
+ import net.minecraft.network.chat.ChatMessage;
+ import net.minecraft.network.chat.IChatBaseComponent;
+ import net.minecraft.network.protocol.Packet;
+-import net.minecraft.network.protocol.game.PacketDebug;
+-import net.minecraft.network.protocol.game.PacketPlayOutBlockAction;
+-import net.minecraft.network.protocol.game.PacketPlayOutBlockBreakAnimation;
+-import net.minecraft.network.protocol.game.PacketPlayOutEntitySound;
+-import net.minecraft.network.protocol.game.PacketPlayOutEntityStatus;
+-import net.minecraft.network.protocol.game.PacketPlayOutExplosion;
+-import net.minecraft.network.protocol.game.PacketPlayOutGameStateChange;
+-import net.minecraft.network.protocol.game.PacketPlayOutNamedSoundEffect;
+-import net.minecraft.network.protocol.game.PacketPlayOutSpawnPosition;
+-import net.minecraft.network.protocol.game.PacketPlayOutWorldEvent;
+-import net.minecraft.network.protocol.game.PacketPlayOutWorldParticles;
++import net.minecraft.network.protocol.game.*;
+ import net.minecraft.resources.MinecraftKey;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.MCUtil;
+@@ -77,58 +30,34 @@ import net.minecraft.sounds.SoundCategory;
+ import net.minecraft.sounds.SoundEffect;
+ import net.minecraft.tags.ITagRegistry;
+ import net.minecraft.util.CSVWriter;
+-import net.minecraft.util.EntitySlice;
+ import net.minecraft.util.IProgressUpdate;
+ import net.minecraft.util.MathHelper;
+ import net.minecraft.util.Unit;
+ import net.minecraft.util.profiling.GameProfilerFiller;
+ import net.minecraft.world.DifficultyDamageScaler;
+ import net.minecraft.world.damagesource.DamageSource;
+-import net.minecraft.world.entity.Entity;
+-import net.minecraft.world.entity.EntityInsentient;
+-import net.minecraft.world.entity.EntityLightning;
+-import net.minecraft.world.entity.EntityLiving;
+-import net.minecraft.world.entity.EntityTypes;
+-import net.minecraft.world.entity.EnumCreatureType;
+-import net.minecraft.world.entity.ReputationHandler;
++import net.minecraft.world.entity.*;
+ import net.minecraft.world.entity.ai.navigation.NavigationAbstract;
+ import net.minecraft.world.entity.ai.village.ReputationEvent;
+ import net.minecraft.world.entity.ai.village.poi.VillagePlace;
+ import net.minecraft.world.entity.ai.village.poi.VillagePlaceType;
+-import net.minecraft.world.entity.animal.EntityAnimal;
+-import net.minecraft.world.entity.animal.EntityWaterAnimal;
+ import net.minecraft.world.entity.animal.horse.EntityHorseSkeleton;
+ import net.minecraft.world.entity.boss.EntityComplexPart;
+ import net.minecraft.world.entity.boss.enderdragon.EntityEnderDragon;
+ import net.minecraft.world.entity.item.EntityItem;
+-import net.minecraft.world.entity.npc.NPC;
++import net.minecraft.world.entity.monster.EntityDrowned;
+ import net.minecraft.world.entity.player.EntityHuman;
+ import net.minecraft.world.entity.raid.PersistentRaid;
+ import net.minecraft.world.entity.raid.Raid;
+ import net.minecraft.world.item.crafting.CraftingManager;
+-import net.minecraft.world.level.BlockActionData;
+-import net.minecraft.world.level.ChunkCoordIntPair;
+-import net.minecraft.world.level.Explosion;
+-import net.minecraft.world.level.ExplosionDamageCalculator;
+-import net.minecraft.world.level.ForcedChunk;
+-import net.minecraft.world.level.GameRules;
+-import net.minecraft.world.level.GeneratorAccessSeed;
+-import net.minecraft.world.level.MobSpawner;
+-import net.minecraft.world.level.NextTickListEntry;
+-import net.minecraft.world.level.SpawnerCreature;
+-import net.minecraft.world.level.StructureManager;
+-import net.minecraft.world.level.TickListServer;
+-import net.minecraft.world.level.World;
++import net.minecraft.world.level.*;
+ import net.minecraft.world.level.biome.BiomeBase;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.ITileEntity;
+ import net.minecraft.world.level.block.entity.TileEntity;
+ import net.minecraft.world.level.block.state.IBlockData;
+-import net.minecraft.world.level.chunk.Chunk;
+-import net.minecraft.world.level.chunk.ChunkGenerator;
+-import net.minecraft.world.level.chunk.ChunkSection;
+-import net.minecraft.world.level.chunk.ChunkStatus;
+-import net.minecraft.world.level.chunk.IChunkAccess;
++import net.minecraft.world.level.chunk.*;
+ import net.minecraft.world.level.chunk.storage.RegionFile;
+ import net.minecraft.world.level.dimension.DimensionManager;
+ import net.minecraft.world.level.dimension.end.EnderDragonBattle;
+@@ -146,6 +75,7 @@ import net.minecraft.world.level.saveddata.maps.PersistentIdCounts;
+ import net.minecraft.world.level.saveddata.maps.WorldMap;
+ import net.minecraft.world.level.storage.Convertable;
+ import net.minecraft.world.level.storage.IWorldDataServer;
++import net.minecraft.world.level.storage.WorldDataServer;
+ import net.minecraft.world.level.storage.WorldPersistentData;
+ import net.minecraft.world.phys.AxisAlignedBB;
+ import net.minecraft.world.phys.Vec3D;
+@@ -154,12 +84,6 @@ import net.minecraft.world.phys.shapes.VoxelShape;
+ import net.minecraft.world.phys.shapes.VoxelShapes;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+-
+-// CraftBukkit start
+-import java.util.logging.Level;
+-import net.minecraft.world.entity.monster.EntityDrowned;
+-import net.minecraft.world.level.block.ITileEntity;
+-import net.minecraft.world.level.storage.WorldDataServer;
+ import org.bukkit.Bukkit;
+ import org.bukkit.WeatherType;
+ import org.bukkit.craftbukkit.event.CraftEventFactory;
+@@ -168,16 +92,31 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
+ import org.bukkit.event.server.MapInitializeEvent;
+ import org.bukkit.event.weather.LightningStrikeEvent;
+ import org.bukkit.event.world.TimeSkipEvent;
+-// CraftBukkit end
+-import it.unimi.dsi.fastutil.ints.IntArrayList; // Tuinity
++
++import javax.annotation.Nonnull;
++import javax.annotation.Nullable;
++import java.io.BufferedWriter;
++import java.io.IOException;
++import java.io.Writer;
++import java.nio.file.Files;
++import java.util.*;
++import java.util.concurrent.ConcurrentLinkedDeque;
++import java.util.concurrent.Executor;
++import java.util.function.BooleanSupplier;
++import java.util.function.Function;
++import java.util.function.Predicate;
++import java.util.logging.Level;
++import java.util.stream.Collectors;
++import java.util.stream.Stream;
+ 
+ public class WorldServer extends World implements GeneratorAccessSeed {
+ 
+     public static final BlockPosition a = new BlockPosition(100, 50, 0);
+     private static final Logger LOGGER = LogManager.getLogger();
+-    public final Int2ObjectMap<Entity> entitiesById = new Int2ObjectLinkedOpenHashMap(); final com.tuinity.tuinity.util.maplist.IteratorSafeOrderedReferenceSet<Entity> entitiesForIteration = new com.tuinity.tuinity.util.maplist.IteratorSafeOrderedReferenceSet<>(2048, 0.5f, 2048, 0.2, true); // Tuinity - make removing entities while ticking safe
+-    private final Map<UUID, Entity> entitiesByUUID = Maps.newHashMap();
+-    private final Queue<Entity> entitiesToAdd = Queues.newArrayDeque();
++    public final Int2ObjectMap<Entity> entitiesById = Int2ObjectMaps.synchronize(new Int2ObjectLinkedOpenHashMap());
++    final Set<Entity> entitiesForIteration = Sets.newConcurrentHashSet();
++    private final Map<UUID, Entity> entitiesByUUID = Maps.newConcurrentMap();
++    private final Queue<Entity> entitiesToAdd = Queues.newConcurrentLinkedQueue();
+     public final List<EntityPlayer> players = Lists.newArrayList(); // Paper - private -> public
+     public final ChunkProviderServer chunkProvider; // Paper - public
+     public boolean tickingEntities; // Paper - expose for watchdog
+@@ -199,9 +138,10 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+     private final PortalTravelAgent portalTravelAgent;
+     private final TickListServer<Block> nextTickListBlock;
+     private final TickListServer<FluidType> nextTickListFluid;
+-    private final Set<NavigationAbstract> navigators; final com.tuinity.tuinity.util.maplist.IteratorSafeOrderedReferenceSet<NavigationAbstract> navigatorsForIteration = new com.tuinity.tuinity.util.maplist.IteratorSafeOrderedReferenceSet<>(2048, 0.5f, 2048, 0.2, true); // Tuinity - make removing entities while ticking safe
++    private final Set<NavigationAbstract> navigators;
++    final Set<NavigationAbstract> navigatorsForIteration = Sets.newConcurrentHashSet();
+     protected final PersistentRaid persistentRaid;
+-    private final ObjectLinkedOpenHashSet<BlockActionData> L;
++    private final Deque<BlockActionData> L;
+     private boolean ticking;
+     private final List<MobSpawner> mobSpawners;
+     @Nullable
+@@ -545,8 +485,8 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+                 return fluidtype == null || fluidtype == FluidTypes.EMPTY;
+             }, IRegistry.FLUID::getKey, this::a, "Fluids"); // Paper - Timings
+         }
+-        this.navigators = Sets.newHashSet();
+-        this.L = new ObjectLinkedOpenHashSet();
++        this.navigators = Sets.newConcurrentHashSet();
++        this.L = new ConcurrentLinkedDeque<>();
+         this.Q = flag1;
+         this.server = minecraftserver;
+         this.mobSpawners = list;
+@@ -1066,7 +1006,7 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+             }
+ 
+             this.tickingEntities = true;
+-            com.tuinity.tuinity.util.maplist.IteratorSafeOrderedReferenceSet.Iterator<Entity> objectiterator = this.entitiesForIteration.iterator(); // Tuinity
++            Iterator<Entity> objectiterator = this.entitiesForIteration.iterator(); // Tuinity
+ 
+             org.spigotmc.ActivationRange.activateEntities(this); // Spigot
+             timings.entityTick.startTiming(); // Spigot
+@@ -1074,20 +1014,9 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+                 Entity entity = (Entity) objectiterator.next(); // Tuinity
+                 Entity entity1 = entity.getVehicle();
+ 
+-                /* CraftBukkit start - We prevent spawning in general, so this butchering is not needed
+-                if (!this.server.getSpawnAnimals() && (entity instanceof EntityAnimal || entity instanceof EntityWaterAnimal)) {
+-                    entity.die();
+-                }
+-
+-                if (!this.server.getSpawnNPCs() && entity instanceof NPC) {
+-                    entity.die();
+-                }
+-                // CraftBukkit end */
+-
+                 gameprofilerfiller.enter("checkDespawn");
+                 if (!entity.dead) {
+                     entity.checkDespawn();
+-                    // Tuinity start - optimise notify()
+                     if (entity.inChunk && entity.valid) {
+                         if (this.getChunkProvider().isInEntityTickingChunk(entity)) {
+                             this.updateNavigatorsInRegion(entity);
+@@ -1095,7 +1024,6 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+                     } else {
+                         this.removeNavigatorsFromData(entity);
+                     }
+-                    // Tuinity end - optimise notify()
+                 }
+ 
+                 gameprofilerfiller.exit();
+@@ -1131,7 +1059,6 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+             }
+             timings.entityTick.stopTiming(); // Spigot
+ 
+-            objectiterator.finishedIterating(); // Tuinity
+             this.tickingEntities = false;
+             // Paper start
+             for (java.lang.Runnable run : this.afterEntityTickingTasks) {
+@@ -1180,14 +1107,9 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+     }
+ 
+     public void doMobSpawning(boolean flag, boolean flag1) {
+-        Iterator iterator = this.mobSpawners.iterator();
+-
+-        while (iterator.hasNext()) {
+-            MobSpawner mobspawner = (MobSpawner) iterator.next();
+-
++        for (MobSpawner mobspawner : this.mobSpawners) {
+             mobspawner.a(this, flag, flag1);
+         }
+-
+     }
+ 
+     private void wakeupPlayers() {
+@@ -2059,14 +1981,14 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+         // CraftBukkit start - SPIGOT-5278
+         if (entity instanceof EntityDrowned) {
+             // Tuinity start
+-            this.navigators.remove(((EntityDrowned) entity).navigationWater); this.navigatorsForIteration.remove(((EntityDrowned) entity).navigationWater);
+-            this.navigators.remove(((EntityDrowned) entity).navigationLand); this.navigatorsForIteration.remove(((EntityDrowned) entity).navigationLand);
++            this.navigators.remove(((EntityDrowned) entity).navigationWater); //this.navigatorsForIteration.remove(((EntityDrowned) entity).navigationWater);
++            this.navigators.remove(((EntityDrowned) entity).navigationLand); //this.navigatorsForIteration.remove(((EntityDrowned) entity).navigationLand);
+             // Tuinity end
+         } else
+         // CraftBukkit end
+         if (entity instanceof EntityInsentient) {
+             // Tuinity start
+-            this.navigators.remove(((EntityInsentient) entity).getNavigation()); this.navigatorsForIteration.remove(((EntityInsentient) entity).getNavigation());
++            this.navigators.remove(((EntityInsentient) entity).getNavigation());// this.navigatorsForIteration.remove(((EntityInsentient) entity).getNavigation());
+             // Tuinity end
+         }
+         new com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent(entity.getBukkitEntity()).callEvent(); // Paper - fire while valid
+@@ -2181,14 +2103,16 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+             // CraftBukkit start - SPIGOT-5278
+             if (entity instanceof EntityDrowned) {
+                 // Tuinity start
+-                this.navigators.add(((EntityDrowned) entity).navigationWater); this.navigatorsForIteration.add(((EntityDrowned) entity).navigationWater);
+-                this.navigators.add(((EntityDrowned) entity).navigationLand); this.navigatorsForIteration.add(((EntityDrowned) entity).navigationLand);
++                this.navigators.add(((EntityDrowned) entity).navigationWater);
++               // this.navigatorsForIteration.add(((EntityDrowned) entity).navigationWater);
++                this.navigators.add(((EntityDrowned) entity).navigationLand);
++               // this.navigatorsForIteration.add(((EntityDrowned) entity).navigationLand);
+                 // Tuinity end
+             } else
+             // CraftBukkit end
+             if (entity instanceof EntityInsentient) {
+                 // Tuinity start
+-                this.navigators.add(((EntityInsentient) entity).getNavigation()); this.navigatorsForIteration.add(((EntityInsentient) entity).getNavigation());
++                this.navigators.add(((EntityInsentient) entity).getNavigation()); //this.navigatorsForIteration.add(((EntityInsentient) entity).getNavigation());
+                 // Tuinity end
+             }
+             entity.valid = true; // CraftBukkit
+@@ -2398,9 +2322,8 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+     }
+ 
+     private void ak() {
+-        while (!this.L.isEmpty()) {
+-            BlockActionData blockactiondata = (BlockActionData) this.L.removeFirst();
+-
++        BlockActionData blockactiondata;
++        while ((blockactiondata = this.L.pollFirst())!=null) {
+             if (this.a(blockactiondata)) {
+                 this.server.getPlayerList().sendPacketNearby((EntityHuman) null, (double) blockactiondata.a().getX(), (double) blockactiondata.a().getY(), (double) blockactiondata.a().getZ(), 64.0D, this.getDimensionKey(), new PacketPlayOutBlockAction(blockactiondata.a(), blockactiondata.b(), blockactiondata.c(), blockactiondata.d()));
+             }
