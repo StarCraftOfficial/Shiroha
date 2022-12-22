@@ -85,10 +85,10 @@ case "$1" in
         cd "$basedir"
     ;;
     "a" | "api")
-        cd "$basedir/Tuinity-API"
+        cd "$basedir/StarTuinity-API"
     ;;
     "s" | "server")
-        cd "$basedir/Tuinity-Server"
+        cd "$basedir/StarTuinity-Server"
     ;;
     "setup")
         if [[ -f ~/.bashrc ]] ; then
