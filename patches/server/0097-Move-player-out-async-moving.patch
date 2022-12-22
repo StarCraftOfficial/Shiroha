@@ -1,0 +1,101 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Thu, 22 Dec 2022 10:36:55 +0800
+Subject: [PATCH] Move player out async moving
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/EntityLiving.java b/src/main/java/net/minecraft/world/entity/EntityLiving.java
+index dd6ad9c94e9f90b4a31ae98c5b8bebef2ac468f5..6c5b1da9edd1528c803b7b659f3c60024896811b 100644
+--- a/src/main/java/net/minecraft/world/entity/EntityLiving.java
++++ b/src/main/java/net/minecraft/world/entity/EntityLiving.java
+@@ -2589,6 +2589,90 @@ public abstract class EntityLiving extends Entity {
+             }
+         }
+ 
++        //Skip players
++        if (this instanceof EntityPlayer){
++            this.movementTick();
++            double d0 = this.locX() - this.lastX;
++            double d1 = this.locZ() - this.lastZ;
++            float f = (float) (d0 * d0 + d1 * d1);
++            float f1 = this.aA;
++            float f2 = 0.0F;
++
++            this.aJ = this.aK;
++            float f3 = 0.0F;
++
++            if (f > 0.0025000002F) {
++                f3 = 1.0F;
++                f2 = (float) Math.sqrt((double) f) * 3.0F;
++                float f4 = (float) MathHelper.d(d1, d0) * 57.295776F - 90.0F;
++                float f5 = MathHelper.e(MathHelper.g(this.yaw) - f4);
++
++                if (95.0F < f5 && f5 < 265.0F) {
++                    f1 = f4 - 180.0F;
++                } else {
++                    f1 = f4;
++                }
++            }
++
++            if (this.as > 0.0F) {
++                f1 = this.yaw;
++            }
++
++            if (!this.onGround) {
++                f3 = 0.0F;
++            }
++
++            this.aK += (f3 - this.aK) * 0.3F;
++            this.world.getMethodProfiler().enter("headTurn");
++            f2 = this.f(f1, f2);
++            this.world.getMethodProfiler().exit();
++            this.world.getMethodProfiler().enter("rangeChecks");
++
++            while (this.yaw - this.lastYaw < -180.0F) {
++                this.lastYaw -= 360.0F;
++            }
++
++            while (this.yaw - this.lastYaw >= 180.0F) {
++                this.lastYaw += 360.0F;
++            }
++
++            while (this.aA - this.aB < -180.0F) {
++                this.aB -= 360.0F;
++            }
++
++            while (this.aA - this.aB >= 180.0F) {
++                this.aB += 360.0F;
++            }
++
++            while (this.pitch - this.lastPitch < -180.0F) {
++                this.lastPitch -= 360.0F;
++            }
++
++            while (this.pitch - this.lastPitch >= 180.0F) {
++                this.lastPitch += 360.0F;
++            }
++
++            while (this.aC - this.aD < -180.0F) {
++                this.aD -= 360.0F;
++            }
++
++            while (this.aC - this.aD >= 180.0F) {
++                this.aD += 360.0F;
++            }
++
++            this.world.getMethodProfiler().exit();
++            this.aL += f2;
++            if (this.isGliding()) {
++                ++this.be;
++            } else {
++                this.be = 0;
++            }
++
++            if (this.isSleeping()) {
++                this.pitch = 0.0F;
++            }
++        }
++
+         MinecraftServer.getServer().callbackExecutor.executeWithCallBack(this::movementTick,()->{
+             double d0 = this.locX() - this.lastX;
+             double d1 = this.locZ() - this.lastZ;
