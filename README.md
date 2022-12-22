@@ -5,20 +5,22 @@
 
 ---
 
-## 功能 | Feature
+### 功能 | Feature
 - 去除 Timings
 - 实体AI半异步
 - 语言汉化
+<br>
 
-## 构建 | Build
-Clone本仓库后，使用 `Git Bash` 键入一下命令
+### 构建 | Build
+`clone` 本仓库后，使用 `Git Bash` 键入一下命令
 ```shell
 ./startuinity jar
 ```
 等待运行完成后，你可以在 `/StarTuinity-Server/target` 下找到构建文件
+<br>
 
-## 开发 | Develop
-Clone本仓库后，使用 `Git Bash` 键入以下命令
+### 开发 | Develop
+`clone` 本仓库后，使用 `Git Bash` 键入以下命令
 ```shell
 ./startuinity jar
 ./startuinity patch
@@ -31,3 +33,4 @@ Clone本仓库后，使用 `Git Bash` 键入以下命令
 ```
 随后，你就可以在 `/StarTuinity-Server/target` 下找到构建文件
 运行 `rebuild` 后，请再次 `commit` 生成的 `.patch` 文件并 `push` 以同步更改
+<br>
