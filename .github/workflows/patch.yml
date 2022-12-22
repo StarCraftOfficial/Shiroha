@@ -46,4 +46,4 @@ jobs:
         # Release title (for automatic releases)
         title: Auto Release
         # Assets to upload to the release
-        files: target/*.jar
+        files: StarTuinity-Server/target/*.jar
