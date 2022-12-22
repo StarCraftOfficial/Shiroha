@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Klop233 <3337913379@qq.com>
+Date: Thu, 22 Dec 2022 18:28:31 +0800
+Subject: [PATCH] Rebrand
+
+
+diff --git a/src/main/java/net/minecraft/server/network/ServerConnection.java b/src/main/java/net/minecraft/server/network/ServerConnection.java
+index 69a982832489fc78fd46418341bdcba1e2be69e9..6a225732a71d8e7715106caa6569a7935fec6e6c 100644
+--- a/src/main/java/net/minecraft/server/network/ServerConnection.java
++++ b/src/main/java/net/minecraft/server/network/ServerConnection.java
+@@ -97,8 +97,8 @@ public class ServerConnection {
+             }
+ 
+             // Tuinity start - indicate Velocity natives in use
+-            ServerConnection.LOGGER.info("Tuinity: Using " + com.velocitypowered.natives.util.Natives.compress.getLoadedVariant() + " compression from Velocity.");
+-            ServerConnection.LOGGER.info("Tuinity: Using " + com.velocitypowered.natives.util.Natives.cipher.getLoadedVariant() + " cipher from Velocity.");
++            ServerConnection.LOGGER.info("StarTuinity: Using " + com.velocitypowered.natives.util.Natives.compress.getLoadedVariant() + " compression from Velocity.");
++            ServerConnection.LOGGER.info("StarTuinity: Using " + com.velocitypowered.natives.util.Natives.cipher.getLoadedVariant() + " cipher from Velocity.");
+             // Tuinity end
+ 
+             this.listeningChannels.add(((ServerBootstrap) ((ServerBootstrap) (new ServerBootstrap()).channel(oclass)).childHandler(new ChannelInitializer<Channel>() {
