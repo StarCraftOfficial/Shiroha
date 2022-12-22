@@ -20,8 +20,8 @@ Clone本仓库后，使用 `Git Bash` 键入一下命令
 ## 开发 | Develop
 Clone本仓库后，使用 `Git Bash` 键入以下命令
 ```shell
-./staruinity jar
-./staruinity patch
+./startuinity jar
+./startuinity patch
 ```
 等待命令运行完成后，你就可以在 `/StarTuinity-Server` 和 `/StarTuinity-API` 中修改代码<br>
 修改完后，请先 `commit` 修改的文件，再在 `Git Bash` 中运行
