@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Klop233 <3337913379@qq.com>
+Date: Thu, 22 Dec 2022 14:33:04 +0800
+Subject: [PATCH] Added StarCraft startup tip
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
+index 2602188ab415c51985e4e9f7ef12c6124f8b1ddb..a44f0cadc3c304b38a86b647e4070c44f5f83d1e 100644
+--- a/src/main/java/org/bukkit/craftbukkit/Main.java
++++ b/src/main/java/org/bukkit/craftbukkit/Main.java
+@@ -21,6 +21,8 @@ public class Main {
+     public static boolean useConsole = true;
+ 
+     public static void main(String[] args) {
++        System.out.println("这是 StarCraft 基于 Tuinity 的专属服务端");
++
+         // Paper start
+         final String warnWhenLegacyFormattingDetected = String.join(".", "net", "kyori", "adventure", "text", "warnWhenLegacyFormattingDetected");
+         if (false && System.getProperty(warnWhenLegacyFormattingDetected) == null) {
