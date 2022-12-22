@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Klop233 <3337913379@qq.com>
+Date: Thu, 22 Dec 2022 14:25:49 +0800
+Subject: [PATCH] Remove java version detect
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
+index fbeca329f62325aa479f968e7f0f04cde341a009..2602188ab415c51985e4e9f7ef12c6124f8b1ddb 100644
+--- a/src/main/java/org/bukkit/craftbukkit/Main.java
++++ b/src/main/java/org/bukkit/craftbukkit/Main.java
+@@ -224,11 +224,6 @@ public class Main {
+                 return;
+             }
+ 
+-            float javaVersion = Float.parseFloat(System.getProperty("java.class.version"));
+-            if (javaVersion > 60.0) {
+-                System.err.println("Unsupported Java detected (" + javaVersion + "). Only up to Java 16 is supported.");
+-                if (!Boolean.getBoolean("Paper.IgnoreJavaVersion")) return; // Paper
+-            }
+ 
+             try {
+                 // Paper start - Handled by TerminalConsoleAppender
