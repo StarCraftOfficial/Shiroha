@@ -43,6 +43,7 @@ jobs:
       with:
         # GitHub secret token
         repo_token: ${{ secrets.TOKEN }}
+        automatic_release_tag: CI
         # Release title (for automatic releases)
         title: Auto Release
         # Assets to upload to the release
