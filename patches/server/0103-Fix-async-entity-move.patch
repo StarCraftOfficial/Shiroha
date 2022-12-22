@@ -1,0 +1,18 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Thu, 22 Dec 2022 16:32:35 +0800
+Subject: [PATCH] Fix async entity move
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/EntityLiving.java b/src/main/java/net/minecraft/world/entity/EntityLiving.java
+index 6c5b1da9edd1528c803b7b659f3c60024896811b..fcfdbae3827270ea754d70b4b8d608d10df7e1ab 100644
+--- a/src/main/java/net/minecraft/world/entity/EntityLiving.java
++++ b/src/main/java/net/minecraft/world/entity/EntityLiving.java
+@@ -2671,6 +2671,7 @@ public abstract class EntityLiving extends Entity {
+             if (this.isSleeping()) {
+                 this.pitch = 0.0F;
+             }
++            return;
+         }
+ 
+         MinecraftServer.getServer().callbackExecutor.executeWithCallBack(this::movementTick,()->{
