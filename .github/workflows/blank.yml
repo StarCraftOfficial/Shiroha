@@ -25,6 +25,10 @@ jobs:
       with:
         java-version: '11'
         distribution: 'temurin'
+    - name: Set up git
+      run: |
+        git config --global user.email action@github.com
+        git config --global user.name action
     - name: Build
       run: bash startuinity jar
     - name: capture build artifacts
