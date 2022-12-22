@@ -5,6 +5,11 @@
 
 ---
 
+## 功能 | Feature
+- 去除 Timings
+- 实体AI半异步
+- 语言汉化
+
 ## 构建 | Build
 Clone本仓库后，使用 `Git Bash` 键入一下命令
 ```shell
