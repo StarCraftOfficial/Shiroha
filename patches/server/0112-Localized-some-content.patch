@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Klop233 <3337913379@qq.com>
+Date: Thu, 22 Dec 2022 20:06:12 +0800
+Subject: [PATCH] Localized some content
+
+
+diff --git a/src/main/java/net/minecraft/server/dedicated/PropertyManager.java b/src/main/java/net/minecraft/server/dedicated/PropertyManager.java
+index 03dd6dc3a1aa8d1be6990c750f96e8a280bc1f25..019c97452ca30c693921f7e546d2f10d6383f183 100644
+--- a/src/main/java/net/minecraft/server/dedicated/PropertyManager.java
++++ b/src/main/java/net/minecraft/server/dedicated/PropertyManager.java
+@@ -68,7 +68,7 @@ public abstract class PropertyManager<T extends PropertyManager<T>> {
+ 
+             }
+         } catch (IOException ioexception) {
+-            PropertyManager.LOGGER.error("Failed to load properties from file: " + path);
++            PropertyManager.LOGGER.error("加载配置文件失败，如果你在启动前目录下没有这个文件，请忽略: " + path);
+         }
+ 
+         return properties;
