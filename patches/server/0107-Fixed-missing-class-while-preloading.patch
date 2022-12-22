@@ -1,0 +1,18 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Klop233 <3337913379@qq.com>
+Date: Thu, 22 Dec 2022 17:41:41 +0800
+Subject: [PATCH] Fixed missing class while preloading
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
+index 516d272e97fd2931e518f05b8e3da2983591c473..0e109c52906a16ef8308847dcc7c4e50727c7ce9 100644
+--- a/src/main/java/org/bukkit/craftbukkit/Main.java
++++ b/src/main/java/org/bukkit/craftbukkit/Main.java
+@@ -312,7 +312,6 @@ public class Main {
+             tryPreloadClass("org.jline.terminal.impl.MouseSupport$1");
+             tryPreloadClass("org.jline.terminal.Terminal$MouseTracking");
+             tryPreloadClass("co.aikar.timings.TimingHistory");
+-            tryPreloadClass("co.aikar.timings.TimingHistory$MinuteReport");
+             tryPreloadClass("io.netty.channel.AbstractChannelHandlerContext");
+             tryPreloadClass("io.netty.channel.AbstractChannelHandlerContext$11");
+             tryPreloadClass("io.netty.channel.AbstractChannelHandlerContext$12");
