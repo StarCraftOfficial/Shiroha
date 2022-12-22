@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Thu, 22 Dec 2022 10:19:33 +0800
+Subject: [PATCH] Try fix NPE in pathfinder
+
+
+diff --git a/src/main/java/net/minecraft/world/level/pathfinder/PathfinderAbstract.java b/src/main/java/net/minecraft/world/level/pathfinder/PathfinderAbstract.java
+index 88be03bd77656235322522c3782b9f9a878b86b1..6d8e94bbfe7635d1b48d224a4c1ead951d6a8d73 100644
+--- a/src/main/java/net/minecraft/world/level/pathfinder/PathfinderAbstract.java
++++ b/src/main/java/net/minecraft/world/level/pathfinder/PathfinderAbstract.java
+@@ -1,6 +1,7 @@
+ package net.minecraft.world.level.pathfinder;
+ 
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
++import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+ import net.minecraft.core.BlockPosition;
+ import net.minecraft.util.MathHelper;
+@@ -12,7 +13,7 @@ public abstract class PathfinderAbstract {
+ 
+     protected ChunkCache a;
+     protected EntityInsentient b;
+-    protected final Int2ObjectMap<PathPoint> c = new Int2ObjectOpenHashMap();
++    protected final Int2ObjectMap<PathPoint> c = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap());
+     protected int d;
+     protected int e;
+     protected int f;
+@@ -41,9 +42,7 @@ public abstract class PathfinderAbstract {
+     }
+ 
+     protected PathPoint a(int i, int j, int k) {
+-        return (PathPoint) this.c.computeIfAbsent(PathPoint.b(i, j, k), (l) -> {
+-            return new PathPoint(i, j, k);
+-        });
++        return this.c.computeIfAbsent(PathPoint.b(i, j, k), (l) -> new PathPoint(i, j, k));
+     }
+ 
+     public abstract PathPoint b();
+diff --git a/src/main/java/net/minecraft/world/level/pathfinder/PathfinderNormal.java b/src/main/java/net/minecraft/world/level/pathfinder/PathfinderNormal.java
+index 7b92a54cfb64fb77af99e6bf66eacbdb9e769dc1..5acbda45e6ba080f3cb152624f74a1d626cae376 100644
+--- a/src/main/java/net/minecraft/world/level/pathfinder/PathfinderNormal.java
++++ b/src/main/java/net/minecraft/world/level/pathfinder/PathfinderNormal.java
+@@ -1,8 +1,10 @@
+ package net.minecraft.world.level.pathfinder;
+ 
+ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
++import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
++import it.unimi.dsi.fastutil.objects.Object2BooleanMaps;
+ import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
+ import java.util.EnumSet;
+ import java.util.Iterator;
+@@ -34,8 +36,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
+ public class PathfinderNormal extends PathfinderAbstract {
+ 
+     protected float j;
+-    private final Long2ObjectMap<PathType> k = new Long2ObjectOpenHashMap();
+-    private final Object2BooleanMap<AxisAlignedBB> l = new Object2BooleanOpenHashMap();
++    private final Long2ObjectMap<PathType> k = Long2ObjectMaps.synchronize(new Long2ObjectOpenHashMap());
++    private final Object2BooleanMap<AxisAlignedBB> l = Object2BooleanMaps.synchronize(new Object2BooleanOpenHashMap());
+ 
+     public PathfinderNormal() {}
+ 
