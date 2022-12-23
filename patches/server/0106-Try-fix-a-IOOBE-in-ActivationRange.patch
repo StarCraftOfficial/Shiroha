@@ -1,0 +1,108 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Thu, 22 Dec 2022 18:26:30 +0800
+Subject: [PATCH] Try fix a IOOBE in ActivationRange
+
+
+diff --git a/src/main/java/com/destroystokyo/paper/util/maplist/EntityList.java b/src/main/java/com/destroystokyo/paper/util/maplist/EntityList.java
+index 8ddc8bf2e88e2ef6c82bc03595a37e0181ad94eb..76a46507588e07fff77078ce92f628acd1095b06 100644
+--- a/src/main/java/com/destroystokyo/paper/util/maplist/EntityList.java
++++ b/src/main/java/com/destroystokyo/paper/util/maplist/EntityList.java
+@@ -1,14 +1,14 @@
+ package com.destroystokyo.paper.util.maplist;
+ 
+-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+-import it.unimi.dsi.fastutil.objects.ObjectList;
+-import it.unimi.dsi.fastutil.objects.ObjectLists;
+ import net.minecraft.world.entity.Entity;
++
+ import java.util.Iterator;
++import java.util.List;
++import java.util.concurrent.CopyOnWriteArrayList;
+ 
+ public final class EntityList implements Iterable<Entity> {
+ 
+-    private final ObjectList<Entity> entities = ObjectLists.synchronize(new ObjectArrayList<>());
++    private final List<Entity> entities = new CopyOnWriteArrayList<>();
+ 
+     public int size() {
+         return this.entities.size();
+diff --git a/src/main/java/org/spigotmc/ActivationRange.java b/src/main/java/org/spigotmc/ActivationRange.java
+index ada325efceb247bf090f02f07743b7c0451863d0..e1a0d9a83288b79064b5c9fd0b77082a48a7371e 100644
+--- a/src/main/java/org/spigotmc/ActivationRange.java
++++ b/src/main/java/org/spigotmc/ActivationRange.java
+@@ -1,51 +1,36 @@
+ package org.spigotmc;
+ 
+-import java.util.Collection;
++import co.aikar.timings.MinecraftTimings;
++import net.minecraft.core.BlockPosition;
+ import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ChunkProviderServer;
+ import net.minecraft.server.level.WorldServer;
+ import net.minecraft.util.MathHelper;
+-import net.minecraft.world.entity.Entity;
+-import net.minecraft.world.entity.EntityCreature;
+-import net.minecraft.world.entity.EntityLightning;
+-import net.minecraft.world.entity.EntityLiving;
++import net.minecraft.world.entity.*;
++import net.minecraft.world.entity.ai.BehaviorController;
+ import net.minecraft.world.entity.ambient.EntityAmbient;
+ import net.minecraft.world.entity.animal.EntityAnimal;
++import net.minecraft.world.entity.animal.EntityBee;
+ import net.minecraft.world.entity.animal.EntitySheep;
++import net.minecraft.world.entity.animal.EntityWaterAnimal;
++import net.minecraft.world.entity.animal.horse.EntityLlama;
+ import net.minecraft.world.entity.boss.EntityComplexPart;
+ import net.minecraft.world.entity.boss.enderdragon.EntityEnderCrystal;
+ import net.minecraft.world.entity.boss.enderdragon.EntityEnderDragon;
+ import net.minecraft.world.entity.boss.wither.EntityWither;
++import net.minecraft.world.entity.item.EntityFallingBlock;
+ import net.minecraft.world.entity.item.EntityTNTPrimed;
+ import net.minecraft.world.entity.monster.EntityCreeper;
+-import net.minecraft.world.entity.monster.EntityMonster;
+-import net.minecraft.world.entity.monster.EntitySlime;
++import net.minecraft.world.entity.monster.EntityPillager;
++import net.minecraft.world.entity.monster.IMonster;
+ import net.minecraft.world.entity.npc.EntityVillager;
+ import net.minecraft.world.entity.player.EntityHuman;
+-import net.minecraft.world.entity.projectile.EntityArrow;
+-import net.minecraft.world.entity.projectile.EntityFireball;
+-import net.minecraft.world.entity.projectile.EntityFireworks;
+-import net.minecraft.world.entity.projectile.EntityProjectile;
+-import net.minecraft.world.entity.projectile.EntityThrownTrident;
++import net.minecraft.world.entity.projectile.*;
+ import net.minecraft.world.entity.raid.EntityRaider;
++import net.minecraft.world.entity.schedule.Activity;
+ import net.minecraft.world.level.World;
+ import net.minecraft.world.level.chunk.Chunk;
+ import net.minecraft.world.phys.AxisAlignedBB;
+-import co.aikar.timings.MinecraftTimings;
+-
+-// Paper start
+-import net.minecraft.core.BlockPosition;
+-import net.minecraft.server.level.ChunkProviderServer;
+-import net.minecraft.world.entity.EntityFlying;
+-import net.minecraft.world.entity.EntityInsentient;
+-import net.minecraft.world.entity.ai.BehaviorController;
+-import net.minecraft.world.entity.animal.EntityBee;
+-import net.minecraft.world.entity.animal.EntityWaterAnimal;
+-import net.minecraft.world.entity.animal.horse.EntityLlama;
+-import net.minecraft.world.entity.monster.EntityPillager;
+-import net.minecraft.world.entity.monster.IMonster;
+-import net.minecraft.world.entity.schedule.Activity;
+-import net.minecraft.world.entity.item.EntityFallingBlock;
+-import net.minecraft.world.entity.projectile.EntityEnderSignal;
+ // Paper end
+ 
+ public class ActivationRange
+@@ -244,8 +229,7 @@ public class ActivationRange
+     {
+         // Paper start
+         Entity[] rawData = chunk.entities.getRawData();
+-        for (int i = 0; i < chunk.entities.size(); i++) {
+-            Entity entity = rawData[i];
++        for (Entity entity : rawData) {
+             if (entity == null){
+                 continue;
+             }

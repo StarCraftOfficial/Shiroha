@@ -1,0 +1,153 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Fri, 23 Dec 2022 08:26:07 +0800
+Subject: [PATCH] Fix fastutil thread safe problems in Village POI
+
+
+diff --git a/src/main/java/com/tuinity/tuinity/util/misc/Delayed26WayDistancePropagator3D.java b/src/main/java/com/tuinity/tuinity/util/misc/Delayed26WayDistancePropagator3D.java
+index 9cc49e8e4ad841df2b38dc37ec761bf360f5a357..a3e594305a6989e02fa87f485f994d4725530046 100644
+--- a/src/main/java/com/tuinity/tuinity/util/misc/Delayed26WayDistancePropagator3D.java
++++ b/src/main/java/com/tuinity/tuinity/util/misc/Delayed26WayDistancePropagator3D.java
+@@ -2,10 +2,7 @@ package com.tuinity.tuinity.util.misc;
+ 
+ import it.unimi.dsi.fastutil.HashCommon;
+ import it.unimi.dsi.fastutil.bytes.ByteArrayFIFOQueue;
+-import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap;
+-import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
+-import it.unimi.dsi.fastutil.longs.LongIterator;
+-import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
++import it.unimi.dsi.fastutil.longs.*;
+ import net.minecraft.server.MCUtil;
+ 
+ public final class Delayed26WayDistancePropagator3D {
+@@ -14,11 +11,11 @@ public final class Delayed26WayDistancePropagator3D {
+     protected final Delayed8WayDistancePropagator2D.LevelMap levels = new Delayed8WayDistancePropagator2D.LevelMap(8192*2, 0.6f);
+ 
+     // this map is never stale
+-    protected final Long2ByteOpenHashMap sources = new Long2ByteOpenHashMap(4096, 0.6f);
++    protected final Long2ByteMap sources = Long2ByteMaps.synchronize(new Long2ByteOpenHashMap(4096, 0.6f));
+ 
+     // Generally updates to positions are made close to other updates, so we link to decrease cache misses when
+     // propagating updates
+-    protected final LongLinkedOpenHashSet updatedSources = new LongLinkedOpenHashSet();
++    protected final LongSet updatedSources = LongSets.synchronize(new LongLinkedOpenHashSet());
+ 
+     @FunctionalInterface
+     public static interface LevelChangeCallback {
+diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/VillagePlace.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/VillagePlace.java
+index 13d94ecd703b3cd0412e138532d2dd74e5bf250d..c663f0963207ebc7f05308823dc9ba220ac0634b 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/village/poi/VillagePlace.java
++++ b/src/main/java/net/minecraft/world/entity/ai/village/poi/VillagePlace.java
+@@ -2,11 +2,8 @@ package net.minecraft.world.entity.ai.village.poi;
+ 
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.datafixers.util.Pair;
+-import it.unimi.dsi.fastutil.longs.Long2ByteMap;
+-import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap;
+-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap; // Tuinity
+-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+-import it.unimi.dsi.fastutil.longs.LongSet;
++import it.unimi.dsi.fastutil.longs.*;
++
+ import java.io.File;
+ import java.util.Collections;
+ import java.util.Comparator;
+@@ -53,7 +50,8 @@ public class VillagePlace extends RegionFileSection<VillagePlaceSection> {
+     }
+     // Tuinity end - unload poi data
+ 
+-    private final LongSet b = new LongOpenHashSet(); private final LongSet getLoadedChunks() { return this.b; } // Tuinity - OBFHELPER
++    private final LongSet b = LongSets.synchronize(new LongOpenHashSet());
++    private final LongSet getLoadedChunks() { return this.b; } // Tuinity - OBFHELPER
+ 
+     private final WorldServer world; // Paper
+ 
+@@ -321,8 +319,8 @@ public class VillagePlace extends RegionFileSection<VillagePlaceSection> {
+             super.a(booleansupplier);
+         } else {
+             //super.a(booleansupplier); // re-implement below
+-            while (!((RegionFileSection)this).d.isEmpty() && booleansupplier.getAsBoolean() && !this.world.isSavingDisabled()) { // Tuinity - unload POI data - don't write to disk if saving is disabled
+-                ChunkCoordIntPair chunkcoordintpair = SectionPosition.a(((RegionFileSection)this).d.firstLong()).r();
++            while (!((RegionFileSection<?>)this).d.isEmpty() && booleansupplier.getAsBoolean() && !this.world.isSavingDisabled()) { // Tuinity - unload POI data - don't write to disk if saving is disabled
++                ChunkCoordIntPair chunkcoordintpair = SectionPosition.a(((RegionFileSection<?>)this).d.firstLong()).r();
+ 
+                 NBTTagCompound data;
+                 try (co.aikar.timings.Timing ignored1 = this.world.timings.poiSaveDataSerialization.startTiming()) {
+diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/VillagePlaceSection.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/VillagePlaceSection.java
+index 41ffad7cbb6c77713736f37b3728b201d315f6d4..a9b99b69fdfaacf7d997643b8a9ff03463abed00 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/village/poi/VillagePlaceSection.java
++++ b/src/main/java/net/minecraft/world/entity/ai/village/poi/VillagePlaceSection.java
+@@ -6,6 +6,7 @@ import com.google.common.collect.Sets;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
++import it.unimi.dsi.fastutil.shorts.Short2ObjectMaps;
+ import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
+ import java.util.List;
+ import java.util.Map;
+@@ -27,7 +28,8 @@ public class VillagePlaceSection {
+ 
+     private static final Logger LOGGER = LogManager.getLogger();
+     private final Short2ObjectMap<VillagePlaceRecord> b;
+-    private final Map<VillagePlaceType, Set<VillagePlaceRecord>> c; public final Map<VillagePlaceType, Set<VillagePlaceRecord>> getData() { return this.c; } // Tuinity - OBFHELPER
++    private final Map<VillagePlaceType, Set<VillagePlaceRecord>> c;
++    public final Map<VillagePlaceType, Set<VillagePlaceRecord>> getData() { return this.c; } // Tuinity - OBFHELPER
+     private final Runnable d;
+     private boolean e;
+ 
+@@ -52,8 +54,8 @@ public class VillagePlaceSection {
+     }
+ 
+     private VillagePlaceSection(Runnable runnable, boolean flag, List<VillagePlaceRecord> list) {
+-        this.b = new Short2ObjectOpenHashMap();
+-        this.c = Maps.newHashMap();
++        this.b = Short2ObjectMaps.synchronize(new Short2ObjectOpenHashMap());
++        this.c = Maps.newConcurrentMap();
+         this.d = runnable;
+         this.e = flag;
+         list.forEach(this::a);
+diff --git a/src/main/java/net/minecraft/world/level/chunk/storage/RegionFileSection.java b/src/main/java/net/minecraft/world/level/chunk/storage/RegionFileSection.java
+index f70c14385c95763b5f270a6e2ce372cf047ba7bb..9a3f61d2f82b7c2ca0f8cd8336a297cb1234f9e5 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/storage/RegionFileSection.java
++++ b/src/main/java/net/minecraft/world/level/chunk/storage/RegionFileSection.java
+@@ -8,9 +8,8 @@ import com.mojang.serialization.DataResult;
+ import com.mojang.serialization.Dynamic;
+ import com.mojang.serialization.DynamicOps;
+ import com.mojang.serialization.OptionalDynamic;
+-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+-import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
++import it.unimi.dsi.fastutil.longs.*;
++
+ import java.io.File;
+ import java.io.IOException;
+ import java.util.Map;
+@@ -18,6 +17,7 @@ import java.util.Optional;
+ import java.util.function.BooleanSupplier;
+ import java.util.function.Function;
+ import javax.annotation.Nullable;
++
+ import net.minecraft.SharedConstants;
+ import net.minecraft.SystemUtils;
+ import net.minecraft.core.SectionPosition;
+@@ -34,8 +34,10 @@ public class RegionFileSection<R> extends RegionFileCache implements AutoCloseab
+ 
+     private static final Logger LOGGER = LogManager.getLogger();
+     // Paper - nuke IOWorker
+-    private final Long2ObjectMap<Optional<R>> c = new Long2ObjectOpenHashMap(); protected final Long2ObjectMap<Optional<R>> getDataBySection() { return this.c; } // Tuinity - OBFHELPER
+-    public final LongLinkedOpenHashSet d = new LongLinkedOpenHashSet();  protected final LongLinkedOpenHashSet getDirtySections() { return this.d; } // Paper - private -> public // Tuinity - OBFHELPER
++    private final Long2ObjectMap<Optional<R>> c = Long2ObjectMaps.synchronize(new Long2ObjectOpenHashMap());
++    protected final Long2ObjectMap<Optional<R>> getDataBySection() { return this.c; } // Tuinity - OBFHELPER
++    public final LongSortedSet d = LongSortedSets.synchronize(new LongLinkedOpenHashSet());
++    //protected final LongLinkedOpenHashSet getDirtySections() { return (LongLinkedOpenHashSet) this.d; } // Paper - private -> public // Tuinity - OBFHELPER
+     private final Function<Runnable, Codec<R>> e;
+     private final Function<Runnable, R> f;
+     private final DataFixer g;
+@@ -53,7 +55,6 @@ public class RegionFileSection<R> extends RegionFileCache implements AutoCloseab
+     protected void a(BooleanSupplier booleansupplier) {
+         while (!this.d.isEmpty() && booleansupplier.getAsBoolean()) {
+             ChunkCoordIntPair chunkcoordintpair = SectionPosition.a(this.d.firstLong()).r(); // Paper - conflict here to avoid obfhelpers
+-
+             this.d(chunkcoordintpair);
+         }
+ 
