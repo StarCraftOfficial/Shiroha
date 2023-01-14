@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Sat, 14 Jan 2023 13:43:57 +0800
+Subject: [PATCH] Shiroha pom changes
+
+
+diff --git a/pom.xml b/pom.xml
+index 51fa28f078be9035b3b944da814d81807a196d2e..2435bb33592f1f4490aa64db04ea7a5bd0d57351 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -1,10 +1,10 @@
+ <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+     <modelVersion>4.0.0</modelVersion>
+-    <artifactId>startuinity</artifactId>
++    <artifactId>shiroha-server</artifactId>
+     <packaging>jar</packaging>
+     <version>1.16.5-R0.1-SNAPSHOT</version>
+-    <name>StarTuinity-Server</name>
++    <name>Shiroha-Server</name>
+ 
+     <properties>
+         <!-- <skipTests>true</skipTests> Paper - This [was] not going to end well -->
+@@ -18,9 +18,9 @@
+     </properties>
+ 
+     <parent>
+-        <groupId>io.starmc</groupId>
+-        <artifactId>startuinity-parent</artifactId>
+-        <version>dev-SNAPSHOT</version>
++        <groupId>icu.starmc</groupId>
++        <artifactId>shiroha-parent</artifactId>
++        <version>dev-1165</version>
+         <relativePath>../pom.xml</relativePath>
+     </parent>
+ 
+@@ -38,8 +38,8 @@
+ 
+     <dependencies>
+         <dependency>
+-            <groupId>io.starmc</groupId>
+-            <artifactId>startuinity-api</artifactId>
++            <groupId>icu.starmc</groupId>
++            <artifactId>shiroha-api</artifactId>
+             <version>${project.version}</version>
+             <scope>compile</scope>
+         </dependency>
+@@ -196,7 +196,7 @@
+ 
+     <!-- This builds a completely 'ready to start' jar with all dependencies inside -->
+     <build>
+-        <finalName>startuinity-${minecraft.version}</finalName>
++        <finalName>shiroha-${minecraft.version}</finalName>
+         <defaultGoal>install</defaultGoal> <!-- Paper -->
+         <plugins>
+             <plugin>
+@@ -204,7 +204,7 @@
+                 <artifactId>gitdescribe-maven-plugin</artifactId>
+                 <version>1.3</version>
+                 <configuration>
+-                    <outputPrefix>git-StarTuinity-</outputPrefix>
++                    <outputPrefix>git-Shiroha-</outputPrefix>
+                     <scmDirectory>..</scmDirectory>
+                 </configuration>
+                 <executions>

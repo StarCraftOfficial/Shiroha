@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Sat, 14 Jan 2023 13:43:57 +0800
+Subject: [PATCH] Shiroha pom changes
+
+
+diff --git a/pom.xml b/pom.xml
+index 1187c1dc0485e54ceba347a6c15525f448b94862..55951244a8da33409bfefa85b6c474c866267b17 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -3,17 +3,17 @@
+          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+     <modelVersion>4.0.0</modelVersion>
+     <parent>
+-        <groupId>io.starmc</groupId>
+-        <artifactId>startuinity-parent</artifactId>
+-        <version>dev-SNAPSHOT</version>
++        <groupId>icu.starmc</groupId>
++        <artifactId>shiroha-parent</artifactId>
++        <version>dev-1165</version>
+         <relativePath>../pom.xml</relativePath>
+     </parent>
+ 
+-    <artifactId>startuinity-api</artifactId>
++    <artifactId>shiroha-api</artifactId>
+     <version>1.16.5-R0.1-SNAPSHOT</version>
+     <packaging>jar</packaging>
+ 
+-    <name>StarTuinity-API</name>
++    <name>Shiroha-API</name>
+     <description>An enhanced plugin API for Minecraft servers.</description>
+ 
+     <properties>

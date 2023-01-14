@@ -8,18 +8,18 @@ set -e
 basedir="$(cd "$1" && pwd -P)"
 workdir="$basedir/Paper/work"
 mcver=$(cat "$workdir/BuildData/info.json" | grep minecraftVersion | cut -d '"' -f 4)
-paperjar="$basedir/StarTuinity-Server/target/startuinity-$mcver.jar"
+paperjar="$basedir/Shiroha-Server/target/shiroha-$mcver.jar"
 vanillajar="$workdir/Minecraft/$mcver/$mcver.jar"
 
 (
     cd "$workdir/Paperclip"
     mvn clean package "-Dmcver=$mcver" "-Dpaperjar=$paperjar" "-Dvanillajar=$vanillajar"
 )
-cp "$workdir/Paperclip/assembly/target/paperclip-${mcver}.jar" "$basedir/startuinity-paperclip.jar"
+cp "$workdir/Paperclip/assembly/target/paperclip-${mcver}.jar" "$basedir/shiroha-paperclip.jar"
 
 echo ""
 echo ""
 echo ""
 echo "Build success!"
-echo "Copied final jar to $(cd "$basedir" && pwd -P)/startuinity-paperclip.jar"
+echo "Copied final jar to $(cd "$basedir" && pwd -P)/shiroha-paperclip.jar"
 ) || exit 1
