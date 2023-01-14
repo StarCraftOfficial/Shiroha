@@ -1,11 +1,11 @@
 <project>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.starmc</groupId>
-    <artifactId>startuinity-parent</artifactId>
-    <version>dev-SNAPSHOT</version>
+    <groupId>icu.starmc</groupId>
+    <artifactId>shiroha-parent</artifactId>
+    <version>dev-1165</version>
     <packaging>pom</packaging>
-    <name>StarTuinity (Parent)</name>
+    <name>Shiroha(Parent)</name>
 
     <repositories>
         <repository>
@@ -23,8 +23,8 @@
         <finalName>${project.artifactId}</finalName>
     </build>
     <modules>
-        <module>StarTuinity-API</module>
-        <module>StarTuinity-Server</module>
+        <module>Shiroha-API</module>
+        <module>Shiroha-Server</module>
         <module>Paper${file.separator}Paper-MojangAPI</module> <!-- We don't plan on patching this, so this hack is good enough. -->
     </modules>
 </project>
