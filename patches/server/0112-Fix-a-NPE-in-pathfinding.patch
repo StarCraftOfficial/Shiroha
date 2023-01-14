@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Sat, 14 Jan 2023 14:31:10 +0800
+Subject: [PATCH] Fix a NPE in pathfinding
+
+
+diff --git a/pom.xml b/pom.xml
+index 2435bb33592f1f4490aa64db04ea7a5bd0d57351..38e0f0839bdeff71fb2ae686b79e9d7fd6fb83ac 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -4,7 +4,7 @@
+     <artifactId>shiroha-server</artifactId>
+     <packaging>jar</packaging>
+     <version>1.16.5-R0.1-SNAPSHOT</version>
+-    <name>Shiroha-Server</name>
++    <name>  Shiroha-Server</name>
+ 
+     <properties>
+         <!-- <skipTests>true</skipTests> Paper - This [was] not going to end well -->
+diff --git a/src/main/java/net/minecraft/world/level/pathfinder/Pathfinder.java b/src/main/java/net/minecraft/world/level/pathfinder/Pathfinder.java
+index 76e19f3a4ae988f6f3b59763d639fa5e084fa0bf..041410625ff15796f7759edd3033839d12baee1a 100644
+--- a/src/main/java/net/minecraft/world/level/pathfinder/Pathfinder.java
++++ b/src/main/java/net/minecraft/world/level/pathfinder/Pathfinder.java
+@@ -29,7 +29,7 @@ public class Pathfinder {
+     }
+ 
+     @Nullable
+-    public PathEntity a(ChunkCache chunkcache, EntityInsentient entityinsentient, Set<BlockPosition> set, float f, int i, float f1) {
++    public synchronized PathEntity a(ChunkCache chunkcache, EntityInsentient entityinsentient, Set<BlockPosition> set, float f, int i, float f1) {
+         this.d.a();
+         this.c.a(chunkcache, entityinsentient);
+         PathPoint pathpoint = this.c.b();

@@ -1,0 +1,182 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangxyper <wangxyper@163.com>
+Date: Sat, 14 Jan 2023 14:02:32 +0800
+Subject: [PATCH] Rebrand
+
+
+diff --git a/src/main/java/io/aoamoe/starserver/CallbackExecutor.java b/src/main/java/icu/starmc/shiroha/CallbackExecutor.java
+similarity index 99%
+rename from src/main/java/io/aoamoe/starserver/CallbackExecutor.java
+rename to src/main/java/icu/starmc/shiroha/CallbackExecutor.java
+index 495679c99434a680c66c377a23dae98c250a06ae..d3f65342b4ad6d12e8f765701b457e8426c8e665 100644
+--- a/src/main/java/io/aoamoe/starserver/CallbackExecutor.java
++++ b/src/main/java/icu/starmc/shiroha/CallbackExecutor.java
+@@ -1,4 +1,4 @@
+-package io.aoamoe.starserver;
++package icu.starmc.shiroha;
+ 
+ import org.jetbrains.annotations.NotNull;
+ import java.util.Queue;
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index fcc9ad320f3f707057b18caa7fb49f643a7216bf..91e7f3e49780f9b0e298bb0735a1ad84c1d9c7b4 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -10,7 +10,7 @@ import com.mojang.authlib.GameProfileRepository;
+ import com.mojang.authlib.minecraft.MinecraftSessionService;
+ import com.mojang.datafixers.DataFixer;
+ import com.tuinity.tuinity.util.TickThread;
+-import io.aoamoe.starserver.CallbackExecutor;
++import icu.starmc.shiroha.CallbackExecutor;
+ import io.netty.buffer.ByteBuf;
+ import io.netty.buffer.ByteBufOutputStream;
+ import io.netty.buffer.Unpooled;
+@@ -75,9 +75,7 @@ import net.minecraft.core.RegistryMaterials;
+ import net.minecraft.data.worldgen.BiomeDecoratorGroups;
+ import net.minecraft.gametest.framework.GameTestHarnessTicker;
+ import net.minecraft.network.chat.ChatComponentText;
+-import net.minecraft.network.chat.ChatMessage;
+ import net.minecraft.network.chat.IChatBaseComponent;
+-import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.game.PacketPlayOutServerDifficulty;
+ import net.minecraft.network.protocol.game.PacketPlayOutUpdateTime;
+ import net.minecraft.network.protocol.status.ServerPing;
+@@ -86,7 +84,6 @@ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.bossevents.BossBattleCustomData;
+ import net.minecraft.server.level.ChunkProviderServer;
+ import net.minecraft.server.level.EntityPlayer;
+-import net.minecraft.server.level.TicketType;
+ import net.minecraft.server.level.WorldProviderNormal;
+ import net.minecraft.server.level.WorldServer;
+ import net.minecraft.server.level.progress.WorldLoadListener;
+@@ -106,7 +103,6 @@ import net.minecraft.util.CryptographyException;
+ import net.minecraft.util.IProgressUpdate;
+ import net.minecraft.util.MathHelper;
+ import net.minecraft.util.MinecraftEncryption;
+-import net.minecraft.util.Unit;
+ import net.minecraft.util.profiling.GameProfilerDisabled;
+ import net.minecraft.util.profiling.GameProfilerFiller;
+ import net.minecraft.util.profiling.GameProfilerSwitcher;
+@@ -134,7 +130,6 @@ import net.minecraft.world.level.biome.BiomeManager;
+ import net.minecraft.world.level.biome.WorldChunkManager;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.entity.TileEntityHopper;
+-import net.minecraft.world.level.border.IWorldBorderListener;
+ import net.minecraft.world.level.border.WorldBorder;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.dimension.DimensionManager;
+@@ -150,7 +145,6 @@ import net.minecraft.world.level.storage.IWorldDataServer;
+ import net.minecraft.world.level.storage.PersistentCommandStorage;
+ import net.minecraft.world.level.storage.SaveData;
+ import net.minecraft.world.level.storage.SavedFile;
+-import net.minecraft.world.level.storage.SecondaryWorldData;
+ import net.minecraft.world.level.storage.WorldData;
+ import net.minecraft.world.level.storage.WorldNBTStorage;
+ import net.minecraft.world.level.storage.WorldPersistentData;
+@@ -168,7 +162,6 @@ import org.apache.logging.log4j.Logger;
+ // CraftBukkit start
+ import com.mojang.serialization.DynamicOps;
+ import com.mojang.serialization.Lifecycle;
+-import com.google.common.collect.ImmutableSet;
+ // import jline.console.ConsoleReader; // Paper
+ import joptsimple.OptionSet;
+ import net.minecraft.nbt.DynamicOpsNBT;
+@@ -178,9 +171,6 @@ import net.minecraft.server.dedicated.DedicatedServer;
+ import net.minecraft.server.dedicated.DedicatedServerProperties;
+ import net.minecraft.util.datafix.DataConverterRegistry;
+ import net.minecraft.world.level.storage.WorldDataServer;
+-import org.bukkit.Bukkit;
+-import org.bukkit.craftbukkit.CraftServer;
+-import org.bukkit.craftbukkit.Main;
+ import org.bukkit.event.server.ServerLoadEvent;
+ // CraftBukkit end
+ 
+@@ -1665,7 +1655,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+     }
+ 
+     public String getServerModName() {
+-        return "StarTuinity"; // StarTuinity // Tuinity - Tuinity //Paper - Paper > // Spigot - Spigot > // CraftBukkit - cb > vanilla!
++        return "Shiroha"; // Shiroha // Tuinity - Tuinity //Paper - Paper > // Spigot - Spigot > // CraftBukkit - cb > vanilla!
+     }
+ 
+     public CrashReport b(CrashReport crashreport) {
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index b527ab8205a57d7219dd22fdfa47b538de9b11fb..13ecc5cff67692d4e2574c5d66c8b8859b98bf5b 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -230,7 +230,7 @@ import javax.annotation.Nullable; // Paper
+ import javax.annotation.Nonnull; // Paper
+ 
+ public final class CraftServer implements Server {
+-    private final String serverName = "StarTuinity"; // Paper // Tuinity
++    private final String serverName = "Shiroha"; // Paper // Tuinity //Shiroha
+     private final String serverVersion;
+     private final String bukkitVersion = Versioning.getBukkitVersion();
+     private final Logger logger = Logger.getLogger("Minecraft");
+diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
+index 001b1e5197eaa51bfff9031aa6c69876c9a47960..1e59f1928d1f91c3a3f3fc76d3f342badb1ba8ed 100644
+--- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
++++ b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
+@@ -11,7 +11,7 @@ public final class Versioning {
+     public static String getBukkitVersion() {
+         String result = "Unknown-Version";
+ 
+-        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/com.tuinity/tuinity-api/pom.properties"); // Tuinity
++        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/icu.starmc/shiroha-api/pom.properties"); // Tuinity //Shiroha
+         Properties properties = new Properties();
+ 
+         if (stream != null) {
+diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
+index b650f9b6901f15b7fec7a426cd77660039eecd66..1288693f2890641ad3ad65d80ac93fe9873c33cf 100644
+--- a/src/main/java/org/spigotmc/WatchdogThread.java
++++ b/src/main/java/org/spigotmc/WatchdogThread.java
+@@ -26,7 +26,7 @@ public class WatchdogThread extends Thread
+ 
+     private WatchdogThread(long timeoutTime, boolean restart)
+     {
+-        super( "Paper Watchdog Thread" );
++        super( "Shiroha Watchdog Thread" );//Shiroha
+         this.timeoutTime = timeoutTime;
+         this.restart = restart;
+         earlyWarningEvery = Math.min(PaperConfig.watchdogPrintEarlyWarningEvery, timeoutTime); // Paper
+@@ -156,14 +156,14 @@ public class WatchdogThread extends Thread
+                 if (isLongTimeout) {
+                 // Paper end
+                 log.log( Level.SEVERE, "------------------------------" );
+-                log.log( Level.SEVERE, "The server has stopped responding! This is (probably) not a Paper bug." ); // Paper
++                log.log( Level.SEVERE, "The server has stopped responding! This is (probably) not a Shiroha bug." ); // Paper //Shiroha
+                 log.log( Level.SEVERE, "If you see a plugin in the Server thread dump below, then please report it to that author" );
+                 log.log( Level.SEVERE, "\t *Especially* if it looks like HTTP or MySQL operations are occurring" );
+                 log.log( Level.SEVERE, "If you see a world save or edit, then it means you did far more than your server can handle at once" );
+                 log.log( Level.SEVERE, "\t If this is the case, consider increasing timeout-time in spigot.yml but note that this will replace the crash with LARGE lag spikes" );
+-                log.log( Level.SEVERE, "If you are unsure or still think this is a Paper bug, please report this to https://github.com/PaperMC/Paper/issues" );
++                log.log( Level.SEVERE, "If you are unsure or still think this is a Shiroha bug, please report this to https://github.com/PaperMC/Shiroha/issues" );
+                 log.log( Level.SEVERE, "Be sure to include ALL relevant console errors and Minecraft crash reports" );
+-                log.log( Level.SEVERE, "Paper version: " + Bukkit.getServer().getVersion() );
++                log.log( Level.SEVERE, "Shiroha version: " + Bukkit.getServer().getVersion() );
+                 //
+                 if ( net.minecraft.world.level.World.lastPhysicsProblem != null )
+                 {
+@@ -186,12 +186,12 @@ public class WatchdogThread extends Thread
+                 // Paper end
+                 } else
+                 {
+-                    log.log(Level.SEVERE, "--- DO NOT REPORT THIS TO PAPER - THIS IS NOT A BUG OR A CRASH  - " + Bukkit.getServer().getVersion() + " ---");
++                    log.log(Level.SEVERE, "--- DO NOT REPORT THIS TO SHIROHA - THIS IS NOT A BUG OR A CRASH  - " + Bukkit.getServer().getVersion() + " ---");
+                     log.log(Level.SEVERE, "The server has not responded for " + (currentTime - lastTick) / 1000 + " seconds! Creating thread dump");
+                 }
+                 // Paper end - Different message for short timeout
+                 log.log( Level.SEVERE, "------------------------------" );
+-                log.log( Level.SEVERE, "Server thread dump (Look for plugins here before reporting to Paper!):" ); // Paper
++                log.log( Level.SEVERE, "Server thread dump (Look for plugins here before reporting to Shiroha!):" ); // Paper
+                 ChunkTaskManager.dumpAllChunkLoadInfo(); // Paper
+                 this.dumpTickingInfo(); // Tuinity - log detailed tick information
+                 dumpThread( ManagementFactory.getThreadMXBean().getThreadInfo( server.serverThread.getId(), Integer.MAX_VALUE ), log );
+@@ -207,7 +207,7 @@ public class WatchdogThread extends Thread
+                     dumpThread( thread, log );
+                 }
+                 } else {
+-                    log.log(Level.SEVERE, "--- DO NOT REPORT THIS TO PAPER - THIS IS NOT A BUG OR A CRASH ---");
++                    log.log(Level.SEVERE, "--- DO NOT REPORT THIS TO SHIROHA - THIS IS NOT A BUG OR A CRASH ---");
+                 }
+ 
+ 
