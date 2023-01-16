@@ -1,6 +1,4 @@
-# A high performance fork of Tuinity
-## Based on Tuinity Minecraft 1.16.5
-## 你可以在[这里](https://github.com/StarCraftOffical/Shiroha/releases/tag/CI)下载最近构建版
+# Shiroha
 
 ---
 
